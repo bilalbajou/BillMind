@@ -14,6 +14,9 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
+use App\Models\Tenant;
+use Illuminate\Support\Str;
+
 class RegisteredUserController extends Controller
 {
     /**
@@ -33,14 +36,28 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255', // Removed global unique rule: emails are tenant-scoped
+            'company_name' => 'required|string|max:255',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // 1. Create the Company Tenant
+        $tenant = Tenant::create([
+            'company_name' => $request->company_name,
+            'slug' => Str::slug($request->company_name) . '-' . Str::lower(Str::random(5)), // Ensure uniqueness
+            'email' => $request->email,
+            'plan' => 'trial',
+            'trial_ends_at' => now()->addDays(14),
+            'is_active' => true,
+        ]);
+
+        // 2. Create the User linked to the Tenant
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'tenant_id' => $tenant->id,
+            'is_active' => true,
         ]);
 
         event(new Registered($user));

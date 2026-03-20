@@ -1,3 +1,20 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom NProgress (Inertia Loader) Styles */
+#nprogress .bar {
+  background: #4F46E5 !important;
+  height: 4px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #4F46E5, 0 0 5px #4F46E5 !important;
+}
+
+#nprogress .spinner-icon {
+  border-top-color: #4F46E5 !important;
+  border-left-color: #4F46E5 !important;
+  width: 20px !important;
+  height: 20px !important;
+}

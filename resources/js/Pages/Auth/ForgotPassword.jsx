@@ -44,25 +44,15 @@ export default function ForgotPassword({ status }) {
             <Head title="Forgot Password" />
 
             {/* Faint dot grid pattern background */}
-            <div 
+            <div
                 className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
                 style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }}
             ></div>
 
             {/* Center Card */}
             <div className={`w-full ${status ? 'max-w-[440px]' : 'max-w-[420px]'} bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-gray-100 p-8 sm:p-10 relative z-10 transition-all duration-500`}>
-                
-                {/* Logo */}
-                <div className="flex justify-center mb-8">
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <div className="bg-[#4F46E5] p-2 rounded-xl group-hover:bg-indigo-700 transition-colors shadow-sm">
-                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <span className="text-xl font-bold tracking-tight text-[#0f172a]">BillMind</span>
-                    </Link>
-                </div>
+
+
 
                 {!status ? (
                     // ----------------------------------------
@@ -150,10 +140,10 @@ export default function ForgotPassword({ status }) {
                             <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer" className="w-full py-3 px-4 border-2 border-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-all flex items-center justify-center gap-3">
                                 {/* Gmail Logo */}
                                 <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                    <path fill="#EA4335" d="M2.2 6.8c.2-.2.5-.2.8 0l9 6.8 9-6.8c.3-.2.6-.2.8 0 .2.2.3.4.3.7v10.1c0 .7-.6 1.3-1.3 1.3H18V10.2l-6 4.6-6-4.6v8.4H3.1c-.7 0-1.3-.6-1.3-1.3V7.5c0-.3.1-.5.4-.7z"/>
-                                    <path fill="#FBBC04" d="M18 10.2v8.4h2.8c.7 0 1.3-.6 1.3-1.3V7.5l-4.1 2.7z"/>
-                                    <path fill="#4285F4" d="M12 14.8l6-4.6V7.5L12 12l-6-4.5v2.7l6 4.6z"/>
-                                    <path fill="#34A853" d="M6 10.2v8.4H3.1c-.7 0-1.3-.6-1.3-1.3V7.5l4.2 2.7z"/>
+                                    <path fill="#EA4335" d="M2.2 6.8c.2-.2.5-.2.8 0l9 6.8 9-6.8c.3-.2.6-.2.8 0 .2.2.3.4.3.7v10.1c0 .7-.6 1.3-1.3 1.3H18V10.2l-6 4.6-6-4.6v8.4H3.1c-.7 0-1.3-.6-1.3-1.3V7.5c0-.3.1-.5.4-.7z" />
+                                    <path fill="#FBBC04" d="M18 10.2v8.4h2.8c.7 0 1.3-.6 1.3-1.3V7.5l-4.1 2.7z" />
+                                    <path fill="#4285F4" d="M12 14.8l6-4.6V7.5L12 12l-6-4.5v2.7l6 4.6z" />
+                                    <path fill="#34A853" d="M6 10.2v8.4H3.1c-.7 0-1.3-.6-1.3-1.3V7.5l4.2 2.7z" />
                                 </svg>
                                 Open Gmail
                             </a>
@@ -162,7 +152,7 @@ export default function ForgotPassword({ status }) {
                                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                                     <path fill="#0078D4" d="M13 3l-8.5 2.5v13.2l8.5 2.5V3z" />
                                     <path fill="#28A8EA" d="M21 5.3L13 3v18.2l8-2V5.3z" />
-                                    <path fill="#FFF" d="M9.1 7.2c.4 0 .7.1 1.1.2v1.6c-.3-.1-.5-.2-.8-.2-.5 0-.7.3-.7 1s.3 1 .8 1c.3 0 .6-.1.8-.2v1.6c-.3.1-.6.2-1.1.2-.9 0-1.6-.3-2.1-.8-.5-.5-.8-1.2-.8-2s.3-1.5.8-2c.5-.4 1.1-.6 2-.6zm3.3.2h1.6v6H12v-6h.4z"/>
+                                    <path fill="#FFF" d="M9.1 7.2c.4 0 .7.1 1.1.2v1.6c-.3-.1-.5-.2-.8-.2-.5 0-.7.3-.7 1s.3 1 .8 1c.3 0 .6-.1.8-.2v1.6c-.3.1-.6.2-1.1.2-.9 0-1.6-.3-2.1-.8-.5-.5-.8-1.2-.8-2s.3-1.5.8-2c.5-.4 1.1-.6 2-.6zm3.3.2h1.6v6H12v-6h.4z" />
                                 </svg>
                                 Open Outlook
                             </a>
@@ -178,12 +168,12 @@ export default function ForgotPassword({ status }) {
                         <div className="text-sm text-gray-500 font-medium mb-3">
                             Didn't receive the email?
                         </div>
-                        
+
                         {canResend ? (
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={resendEmail}
-                                disabled={processing} 
+                                disabled={processing}
                                 className="text-[#4F46E5] font-bold hover:text-indigo-600 transition-colors flex items-center justify-center gap-1.5 mx-auto outline-none"
                             >
                                 <svg className={`w-4 h-4 ${processing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
