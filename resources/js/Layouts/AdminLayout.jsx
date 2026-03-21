@@ -196,7 +196,7 @@ export default function AdminLayout({ header, children }) {
                         <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                     </svg>
                 </button>
-                <img src="/logo.png" className="h-8" alt="BillMind" onError={(e) => { e.target.style.display = 'none'; }} />
+                <img src="/logo.png" className="h-12" alt="BillMind" onError={(e) => { e.target.style.display = 'none'; }} />
                 <div className="w-9" />
             </div>
 
@@ -210,13 +210,13 @@ export default function AdminLayout({ header, children }) {
                     <Link href="/dashboard" className="flex items-center gap-2 mb-4">
                         <img
                             src="/logo.png"
-                            className="h-10 w-auto"
+                            className="h-20 w-auto"
                             alt="BillMind"
                             onError={(e) => { e.target.style.display = 'none'; }}
                         />
                     </Link>
 
-                    {/* Profile card */}
+                    {/* Profile card
                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                         <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                             {initials}
@@ -230,7 +230,7 @@ export default function AdminLayout({ header, children }) {
                             </div>
                             <p className="text-xs text-gray-400 truncate mt-0.5">{companyName}</p>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Navigation */}

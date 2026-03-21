@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\InvoiceUploadController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -23,9 +24,12 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Clients/Index');
     })->name('clients.index');
 
+    Route::get('/invoices/upload', [InvoiceUploadController::class, 'create'])->name('invoices.upload');
+    Route::post('/invoices/upload/file', [InvoiceUploadController::class, 'uploadFile'])->name('invoices.upload.file');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
