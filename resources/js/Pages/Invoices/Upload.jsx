@@ -212,8 +212,8 @@ export default function Upload() {
         <AdminLayout>
             <Head title="Upload Invoice" />
 
-            <div className="flex justify-center">
-                <div className="w-full max-w-xl space-y-6">
+            <div className="px-4 sm:px-6 py-6">
+                <div className="w-full space-y-6">
 
                     {/* Header */}
                     <div>
