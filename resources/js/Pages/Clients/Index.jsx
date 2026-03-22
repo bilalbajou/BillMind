@@ -1,9 +1,9 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 
 export default function Clients() {
     return (
-        <AdminLayout
+        <AppLayout
             header={
                 <div className="flex items-center justify-between">
                     <div>
@@ -53,6 +53,6 @@ export default function Clients() {
                     </table>
                 </div>
             </div>
-        </AdminLayout>
+        </AppLayout>
     );
 }

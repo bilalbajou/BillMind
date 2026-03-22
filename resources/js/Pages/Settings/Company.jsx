@@ -1,4 +1,4 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+import AppLayout from '@/Layouts/AppLayout';
 import { Head, useForm } from '@inertiajs/react';
 import Swal from 'sweetalert2';
 
@@ -80,7 +80,7 @@ export default function Company({ tenant }) {
     };
 
     return (
-        <AdminLayout>
+        <AppLayout>
             <Head title="Company Settings" />
 
             <div className="py-8 px-4 sm:px-6">
@@ -256,6 +256,6 @@ export default function Company({ tenant }) {
                     </div>
                 </form>
             </div>
-        </AdminLayout>
+        </AppLayout>
     );
 }

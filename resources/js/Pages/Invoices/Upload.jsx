@@ -1,4 +1,4 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage } from '@inertiajs/react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 
@@ -209,7 +209,7 @@ export default function Upload() {
     };
 
     return (
-        <AdminLayout>
+        <AppLayout>
             <Head title="Upload Invoice" />
 
             <div className="px-4 sm:px-6 py-6">
@@ -219,7 +219,7 @@ export default function Upload() {
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Upload Invoice</h1>
                         <p className="mt-1 text-sm text-gray-500">
-                            Let AI extract and analyze your invoices automatically.
+                            Drag & drop or browse your files to upload them.
                         </p>
                     </div>
 
@@ -340,6 +340,6 @@ export default function Upload() {
                     </div>
                 </div>
             </div>
-        </AdminLayout>
+        </AppLayout>
     );
 }

@@ -1,4 +1,5 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+import CategoryIcon from '@/Components/CategoryIcon';
+import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage } from '@inertiajs/react';
 
 const stats = [
@@ -52,11 +53,11 @@ const stats = [
 const recentInvoices = [];
 
 export default function Dashboard() {
-    const { auth } = usePage().props;
+    const { auth, categories = [] } = usePage().props;
     const user = auth.user;
 
     return (
-        <AdminLayout
+        <AppLayout
             header={
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">
@@ -108,6 +109,67 @@ export default function Dashboard() {
                         </svg>
                         Add Client
                     </button>
+                </div>
+            </div>
+
+            {/* Categories Table */}
+            <div className="bg-white rounded-lg shadow mb-6">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-gray-900">Invoices by Category</h2>
+                    <span className="text-xs text-gray-400">{categories.length} categories</span>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3">Category</th>
+                                <th className="px-6 py-3 text-center">Invoices</th>
+                                <th className="px-6 py-3">Distribution</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {categories.map((cat) => {
+                                const total = categories.reduce((s, c) => s + c.invoices_count, 0);
+                                const pct = total > 0 ? Math.round((cat.invoices_count / total) * 100) : 0;
+                                return (
+                                    <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-3">
+                                            <div className="flex items-center gap-2.5">
+                                                <CategoryIcon icon={cat.icon} color={cat.color} size={15} />
+                                                <span className="font-medium text-gray-800">{cat.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3 text-center">
+                                            <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                                {cat.invoices_count}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-3 w-48">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full transition-all duration-500"
+                                                        style={{
+                                                            width: `${pct}%`,
+                                                            backgroundColor: cat.color ?? '#6366f1',
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-gray-400 w-8 text-right">{pct}%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {categories.length === 0 && (
+                                <tr>
+                                    <td colSpan={3} className="px-6 py-8 text-center text-sm text-gray-400">
+                                        No categories found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -175,6 +237,6 @@ export default function Dashboard() {
                     </table>
                 </div>
             </div>
-        </AdminLayout>
+        </AppLayout>
     );
 }

@@ -155,7 +155,7 @@ function NavItem({ item, active, onClick }) {
 }
 
 // ─── Main Layout ───────────────────────────────────────────────────────────────
-export default function AdminLayout({ header, children }) {
+export default function AppLayout({ header, children }) {
     const { auth } = usePage().props;
     const user = auth.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -206,10 +206,10 @@ export default function AdminLayout({ header, children }) {
             } md:translate-x-0 bg-white border-r border-gray-200 flex flex-col`}>
 
                 {/* Header: Logo */}
-                <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-                    <Link href="/dashboard" className="flex items-center gap-2 mb-4">
+                <div className="border-b border-gray-100">
+                    <Link href="/dashboard" className="flex items-center gap-2">
                         <img
-                            src="/logo.png"
+                            src="/logo.png"d
                             className="h-20 w-auto"
                             alt="BillMind"
                             onError={(e) => { e.target.style.display = 'none'; }}

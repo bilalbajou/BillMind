@@ -1,4 +1,4 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+import AppLayout from '@/Layouts/AppLayout';
 import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
@@ -6,7 +6,7 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 
 export default function Edit({ mustVerifyEmail, status }) {
     return (
-        <AdminLayout
+        <AppLayout
             header={
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
@@ -33,6 +33,6 @@ export default function Edit({ mustVerifyEmail, status }) {
                     <DeleteUserForm className="max-w-xl" />
                 </div>
             </div>
-        </AdminLayout>
+        </AppLayout>
     );
 }
