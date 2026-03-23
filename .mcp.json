@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "mysql": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@bytebase/dbhub", "--dsn", "mysql://claude_user:claudePass%40root@127.0.0.1:3306/billmind"]
-    }
-  }
-}
