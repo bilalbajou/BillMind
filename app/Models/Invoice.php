@@ -2,10 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
+    use SoftDeletes;
+    protected static function booted(): void
+    {
+        // Global scope — automatically filter every query by the authenticated tenant.
+        // Prevents cross-tenant data leaks (IDOR) even if a developer forgets to filter.
+        static::addGlobalScope('tenant', function (Builder $builder) {
+            if (auth()->check()) {
+                $builder->where('invoices.tenant_id', auth()->user()->tenant_id);
+            }
+        });
+    }
+
     protected $fillable = [
         'tenant_id', 'uploaded_by',
         'original_filename', 'stored_filename', 'file_path', 'mime_type', 'file_size',

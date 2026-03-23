@@ -110,7 +110,6 @@ export default function Company({ tenant }) {
                                     <Input
                                         value={data.company_name}
                                         onChange={e => setData('company_name', e.target.value)}
-                                        placeholder="Acme Corp"
                                     />
                                 </Field>
                             </div>
@@ -128,7 +127,7 @@ export default function Company({ tenant }) {
                                 <Input
                                     value={data.tax_id}
                                     onChange={e => setData('tax_id', e.target.value)}
-                                    placeholder="e.g. FR12345678901"
+                                    placeholder=""
                                 />
                             </Field>
 
@@ -159,7 +158,7 @@ export default function Company({ tenant }) {
                                     type="email"
                                     value={data.email}
                                     onChange={e => setData('email', e.target.value)}
-                                    placeholder="hello@company.com"
+                                    placeholder=""
                                 />
                             </Field>
 
@@ -168,7 +167,7 @@ export default function Company({ tenant }) {
                                     type="tel"
                                     value={data.phone}
                                     onChange={e => setData('phone', e.target.value)}
-                                    placeholder="+1 (555) 000-0000"
+                                    placeholder=""
                                 />
                             </Field>
 
@@ -178,7 +177,7 @@ export default function Company({ tenant }) {
                                         type="url"
                                         value={data.website}
                                         onChange={e => setData('website', e.target.value)}
-                                        placeholder="https://company.com"
+                                        placeholder=""
                                     />
                                 </Field>
                             </div>
@@ -203,7 +202,7 @@ export default function Company({ tenant }) {
                                     <Input
                                         value={data.address}
                                         onChange={e => setData('address', e.target.value)}
-                                        placeholder="123 Main Street"
+                                        placeholder=""
                                     />
                                 </Field>
                             </div>
@@ -212,7 +211,7 @@ export default function Company({ tenant }) {
                                 <Input
                                     value={data.city}
                                     onChange={e => setData('city', e.target.value)}
-                                    placeholder="New York"
+                                    placeholder=""
                                 />
                             </Field>
 
@@ -220,7 +219,7 @@ export default function Company({ tenant }) {
                                 <Input
                                     value={data.postal_code}
                                     onChange={e => setData('postal_code', e.target.value)}
-                                    placeholder="10001"
+                                    placeholder=""
                                 />
                             </Field>
 
@@ -229,7 +228,7 @@ export default function Company({ tenant }) {
                                     <Input
                                         value={data.country}
                                         onChange={e => setData('country', e.target.value)}
-                                        placeholder="United States"
+                                        placeholder=""
                                     />
                                 </Field>
                             </div>

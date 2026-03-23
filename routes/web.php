@@ -1,8 +1,9 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoiceUploadController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\CompanyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -24,9 +25,20 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Clients/Index');
     })->name('clients.index');
 
-    Route::get('/invoices/upload', [InvoiceUploadController::class, 'create'])->name('invoices.upload');
-    Route::post('/invoices/upload/file', [InvoiceUploadController::class, 'uploadFile'])->name('invoices.upload.file');
+    Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::post('/invoices/{id}/extract', [InvoiceController::class, 'extract'])->name('invoices.extract');
+    Route::post('/invoices/bulk-destroy', [InvoiceController::class, 'bulkDestroy'])->name('invoices.bulk-destroy');
+    Route::post('/invoices/bulk-extract', [InvoiceController::class, 'bulkExtract'])->name('invoices.bulk-extract');
 
+    Route::get('/invoices/upload', [InvoiceUploadController::class, 'create'])->name('invoices.upload');
+    Route::post('/invoices/upload/file', [InvoiceUploadController::class, 'uploadFile'])
+         ->middleware('throttle:20,1')
+         ->name('invoices.upload.file');
+    Route::get('/invoices/{id}/download', [InvoiceUploadController::class, 'download'])->name('invoices.download');
+
+
+    
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
