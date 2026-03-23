@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\MistralOcrService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -17,7 +18,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(MistralOcrService::class, function () {
+            return new MistralOcrService(config('services.mistral.key'));
+        });
     }
 
     /**

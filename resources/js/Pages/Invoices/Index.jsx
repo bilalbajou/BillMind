@@ -3,22 +3,27 @@ import { Sparkles } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { useCallback, useState } from 'react';
+import axios from 'axios';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
-    { value: 'pending', label: 'Pending' },
+    { value: 'pending',    label: 'Pending' },
     { value: 'processing', label: 'Processing' },
-    { value: 'processed', label: 'Processed' },
-    { value: 'error', label: 'Error' },
+    { value: 'processed',  label: 'Processed' },
+    { value: 'validated',  label: 'Validated' },
+    { value: 'archived',   label: 'Archived' },
+    { value: 'error',      label: 'Error' },
 ];
 
 const STATUS_BADGE = {
     pending:    'bg-yellow-50 text-yellow-700 ring-yellow-200',
     processing: 'bg-blue-50 text-blue-700 ring-blue-200',
     processed:  'bg-green-50 text-green-700 ring-green-200',
+    validated:  'bg-indigo-50 text-indigo-700 ring-indigo-200',
+    archived:   'bg-gray-100 text-gray-600 ring-gray-200',
     error:      'bg-red-50 text-red-700 ring-red-200',
 };
 
@@ -42,7 +47,37 @@ export default function Index() {
     const [categoryId, setCategoryId] = useState(filters.category_id ?? '');
     const [dateFrom, setDateFrom]     = useState(filters.date_from ? new Date(filters.date_from) : null);
     const [dateTo, setDateTo]         = useState(filters.date_to ? new Date(filters.date_to) : null);
-    const [selected, setSelected]     = useState([]);
+    const [selected, setSelected]       = useState([]);
+    const [liveStatuses, setLiveStatuses] = useState({}); // { [id]: { status, error_message } }
+    const pollingRef = useRef(null);
+
+    // Poll every 4s while any invoice on this page is still processing
+    useEffect(() => {
+        const processingIds = invoices.data
+            .filter(inv => (liveStatuses[inv.id]?.status ?? inv.status) === 'processing')
+            .map(inv => inv.id);
+
+        if (processingIds.length === 0) {
+            clearInterval(pollingRef.current);
+            return;
+        }
+
+        pollingRef.current = setInterval(async () => {
+            try {
+                const params = new URLSearchParams();
+                processingIds.forEach(id => params.append('ids[]', id));
+                const { data } = await axios.get(route('invoices.statuses') + '?' + params.toString());
+
+                setLiveStatuses(prev => {
+                    const next = { ...prev };
+                    Object.entries(data).forEach(([id, row]) => { next[id] = row; });
+                    return next;
+                });
+            } catch (_) { /* silently ignore network blips */ }
+        }, 4000);
+
+        return () => clearInterval(pollingRef.current);
+    }, [invoices.data, liveStatuses]);
 
     const allIds      = invoices.data.map(i => i.id);
     const allSelected = allIds.length > 0 && allIds.every(id => selected.includes(id));
@@ -309,8 +344,8 @@ export default function Index() {
 
                                         {/* Status */}
                                         <td className="px-5 py-3 text-center">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${STATUS_BADGE[inv.status] ?? 'bg-gray-50 text-gray-600 ring-gray-200'}`}>
-                                                {inv.status}
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${STATUS_BADGE[liveStatuses[inv.id]?.status ?? inv.status] ?? 'bg-gray-50 text-gray-600 ring-gray-200'}`}>
+                                                {liveStatuses[inv.id]?.status ?? inv.status}
                                             </span>
                                         </td>
 
