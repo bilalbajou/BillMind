@@ -7,6 +7,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import Swal from 'sweetalert2';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
@@ -100,18 +101,89 @@ export default function Index() {
         router.get(route('invoices.index'), params, { preserveState: true, replace: true });
     }, [search, status, categoryId, dateFrom, dateTo]);
 
-    const handleDelete = (id, name) => {
-        if (!confirm(`Delete "${name}"?`)) return;
+    const handleDelete = async (id, name) => {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Delete invoice?',
+            text: `"${name}" will be moved to trash.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete',
+            cancelButtonText: 'Cancel',
+        });
+        if (!isConfirmed) return;
         router.delete(route('invoices.destroy', id), { preserveScroll: true, onSuccess: () => setSelected(prev => prev.filter(x => x !== id)) });
     };
 
-    const handleBulkDelete = () => {
-        if (!confirm(`Delete ${selected.length} invoice(s)?`)) return;
+    const handleBulkDelete = async () => {
+        const count = selected.length;
+        const { isConfirmed } = await Swal.fire({
+            title: `Delete ${count} invoice${count > 1 ? 's' : ''}?`,
+            text: 'They will be moved to trash.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete all',
+            cancelButtonText: 'Cancel',
+        });
+        if (!isConfirmed) return;
         router.post(route('invoices.bulk-destroy'), { ids: selected }, { preserveScroll: true, onSuccess: () => setSelected([]) });
     };
 
-    const handleBulkExtract = () => {
+    const handleBulkExtract = async () => {
+        const count = selected.length;
+        const { isConfirmed } = await Swal.fire({
+            title: `Extract ${count} invoice${count > 1 ? 's' : ''}?`,
+            text: 'AI extraction will be queued for the selected invoices.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, extract',
+            cancelButtonText: 'Cancel',
+        });
+        if (!isConfirmed) return;
         router.post(route('invoices.bulk-extract'), { ids: selected }, { preserveScroll: true, onSuccess: () => setSelected([]) });
+    };
+
+    const handleExtract = async (inv) => {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Start extraction?',
+            text: `AI will extract data from "${inv.original_filename}".`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, extract',
+            cancelButtonText: 'Cancel',
+        });
+        if (!isConfirmed) return;
+        setLoadingIds(p => ({ ...p, [inv.id]: true }));
+        router.post(route('invoices.extract', inv.id), {}, {
+            preserveScroll: true,
+            onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
+        });
+    };
+
+    const handleRetry = async (inv) => {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Retry extraction?',
+            text: `Re-run AI extraction for "${inv.original_filename}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, retry',
+            cancelButtonText: 'Cancel',
+        });
+        if (!isConfirmed) return;
+        setLoadingIds(p => ({ ...p, [inv.id]: true }));
+        router.post(route('invoices.extract', inv.id), {}, {
+            preserveScroll: true,
+            onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
+        });
     };
 
     const clearFilters = () => {
@@ -381,13 +453,7 @@ export default function Index() {
                                                     if (currentStatus === 'pending') {
                                                         return (
                                                             <button
-                                                                onClick={() => {
-                                                                    setLoadingIds(p => ({ ...p, [inv.id]: true }));
-                                                                    router.post(route('invoices.extract', inv.id), {}, {
-                                                                        preserveScroll: true,
-                                                                        onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
-                                                                    });
-                                                                }}
+                                                                onClick={() => handleExtract(inv)}
                                                                 className="p-1.5 rounded-md text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition"
                                                                 title="Extract"
                                                             >
@@ -398,13 +464,7 @@ export default function Index() {
                                                     if (currentStatus === 'error') {
                                                         return (
                                                             <button
-                                                                onClick={() => {
-                                                                    setLoadingIds(p => ({ ...p, [inv.id]: true }));
-                                                                    router.post(route('invoices.extract', inv.id), {}, {
-                                                                        preserveScroll: true,
-                                                                        onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
-                                                                    });
-                                                                }}
+                                                                onClick={() => handleRetry(inv)}
                                                                 className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
                                                                 title="Retry extraction"
                                                             >

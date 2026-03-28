@@ -2,28 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
-    use SoftDeletes;
-    protected static function booted(): void
-    {
-        // Global scope — automatically filter every query by the authenticated tenant.
-        // Prevents cross-tenant data leaks (IDOR) even if a developer forgets to filter.
-        static::addGlobalScope('tenant', function (Builder $builder) {
-            if (auth()->check()) {
-                $builder->where('invoices.tenant_id', auth()->user()->tenant_id);
-            }
-        });
-    }
+    use SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
-        // File
-        'tenant_id', 'uploaded_by',
-        'original_filename', 'stored_filename', 'file_path', 'content_hash', 'mime_type', 'file_type', 'file_size',
+        // File metadata — tenant_id and uploaded_by are excluded: never mass-assigned.
+        // tenant_id is stamped automatically by BelongsToTenant::creating.
+        // uploaded_by must be set via direct property assignment in the controller.
+        'original_filename', 'stored_filename', 'file_path', 'content_hash',
+        'mime_type', 'file_type', 'file_size',
         // Identification
         'number', 'po_reference', 'issue_date', 'due_date',
         // Supplier
@@ -54,10 +46,7 @@ class Invoice extends Model
         'new_supplier'   => 'boolean',
     ];
 
-    public function tenant()
-    {
-        return $this->belongsTo(Tenant::class);
-    }
+    // tenant() relationship is provided by BelongsToTenant trait.
 
     public function uploadedBy()
     {
