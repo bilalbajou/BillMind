@@ -10,31 +10,37 @@ class Invoice extends Model
 {
     use SoftDeletes, BelongsToTenant;
 
+    /**
+     * Only OCR-extractable invoice data may be mass-assigned.
+     *
+     * Intentionally excluded — must be set via forceFill() or direct assignment:
+     *   tenant_id          — ownership; stamped by BelongsToTenant::creating
+     *   uploaded_by        — ownership; set directly in InvoiceUploadController
+     *   status             — lifecycle field; controlled exclusively by ExtractInvoiceJob
+     *   error_message      — lifecycle field; controlled exclusively by ExtractInvoiceJob
+     *   category_corrected_id — user-override only; never set by AI output
+     *   is_duplicate, amount_anomaly, date_anomaly, new_supplier — anomaly-detection
+     *                         pipeline fields; not derivable from raw OCR text
+     */
     protected $fillable = [
-        // File metadata — tenant_id and uploaded_by are excluded: never mass-assigned.
-        // tenant_id is stamped automatically by BelongsToTenant::creating.
-        // uploaded_by must be set via direct property assignment in the controller.
+        // File metadata (upload-time only — never updated by OCR)
         'original_filename', 'stored_filename', 'file_path', 'content_hash',
         'mime_type', 'file_type', 'file_size',
-        // Identification
+        // Extracted identification
         'number', 'po_reference', 'issue_date', 'due_date',
-        // Supplier
+        // Extracted supplier
         'supplier_name', 'supplier_address', 'supplier_ice', 'supplier_if', 'supplier_rc',
         'supplier_phone', 'supplier_email', 'supplier_rib',
-        // Customer
+        // Extracted customer
         'customer_name', 'customer_address', 'customer_ice', 'customer_if',
-        // Amounts
+        // Extracted amounts
         'subtotal_ht', 'discount_rate', 'discount_amount', 'taxable_amount',
         'vat_rate', 'vat_amount', 'total_ttc', 'currency', 'amount_in_words',
-        // Payment
+        // Extracted payment
         'payment_method', 'payment_terms', 'payment_reference', 'late_penalty',
         'bank_name', 'bank_iban',
-        // AI / OCR
-        'category', 'category_id', 'category_corrected_id', 'category_score',
-        'ocr_text', 'extraction_score',
-        // Status & anomaly flags
-        'status', 'error_message',
-        'is_duplicate', 'amount_anomaly', 'date_anomaly', 'new_supplier',
+        // OCR / AI metadata
+        'category', 'category_id', 'category_score', 'ocr_text', 'extraction_score',
     ];
 
     protected $casts = [

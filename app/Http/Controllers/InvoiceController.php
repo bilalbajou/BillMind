@@ -59,7 +59,7 @@ class InvoiceController extends Controller
     public function extract(int $id)
     {
         $invoice = Invoice::findOrFail($id);
-        $invoice->update(['status' => 'processing']);
+        $invoice->forceFill(['status' => 'processing'])->save();
         dispatch(new ExtractInvoiceJob($invoice));
 
         return back()->with('success', 'Extraction started.');
@@ -92,7 +92,7 @@ class InvoiceController extends Controller
         /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Invoice> $invoices */
         $invoices = Invoice::whereIn('id', $validated['ids'])->get();
         foreach ($invoices as $invoice) {
-            $invoice->update(['status' => 'processing']);
+            $invoice->forceFill(['status' => 'processing'])->save();
             dispatch(new ExtractInvoiceJob($invoice));
         }
 

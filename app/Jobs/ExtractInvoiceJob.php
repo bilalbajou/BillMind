@@ -25,12 +25,14 @@ class ExtractInvoiceJob implements ShouldQueue
 
     public function handle(MistralOcrService $ocr, BlazeInvoiceExtractorService $blaze): void
     {
-        $this->invoice->update(['status' => 'processing', 'error_message' => null]);
+        // forceFill() is required because status/error_message are intentionally excluded
+        // from $fillable — they must only be written by this job, never by OCR output.
+        $this->invoice->forceFill(['status' => 'processing', 'error_message' => null])->save();
 
         Log::channel('mistral')->info('Extraction job started', [
             'invoice_id' => $this->invoice->id,
-            'file_path'  => $this->invoice->file_path,
-            'attempt'    => $this->attempts(),
+            'file_path' => $this->invoice->file_path,
+            'attempt' => $this->attempts(),
         ]);
 
         try {
@@ -48,14 +50,19 @@ class ExtractInvoiceJob implements ShouldQueue
 
             $extracted = $blaze->extractFromText($ocrResult['ocr_text'], $categories);
 
-            // Step 3 — Save invoice fields
+            // Step 3 — Save AI-extracted invoice fields via normal update() so $fillable
+            // acts as a hard barrier: any field the AI returns that is not in $fillable
+            // (status, error_message, tenant_id, uploaded_by, anomaly flags, etc.) is
+            // silently dropped before it reaches the database.
             $this->invoice->update([
                 ...$extracted['fields'],
                 'ocr_text' => $ocrResult['ocr_text'],
-                'status'   => 'processed',
             ]);
 
-            // Step 4 — Save line items
+            // Step 4 — Mark as processed via forceFill() — not part of AI output.
+            $this->invoice->forceFill(['status' => 'processed'])->save();
+
+            // Step 5 — Save line items
             if (!empty($extracted['items'])) {
                 $this->invoice->items()->delete();
                 foreach ($extracted['items'] as $item) {
@@ -65,8 +72,8 @@ class ExtractInvoiceJob implements ShouldQueue
 
             Log::channel('mistral')->info('Extraction job completed', [
                 'invoice_id' => $this->invoice->id,
-                'pages'      => $ocrResult['page_count'],
-                'items'      => count($extracted['items']),
+                'pages' => $ocrResult['page_count'],
+                'items' => count($extracted['items']),
             ]);
         } catch (\Throwable $e) {
             $isLastAttempt = $this->attempts() >= $this->tries;
@@ -78,12 +85,13 @@ class ExtractInvoiceJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            // Only mark as error on the final attempt — keep processing during retries
+            // Only mark as error on the final attempt — keep 'processing' during retries
+            // so the frontend spinner stays active and the user is not misled.
             if ($isLastAttempt) {
-                $this->invoice->update([
+                $this->invoice->forceFill([
                     'status' => 'error',
                     'error_message' => $e->getMessage(),
-                ]);
+                ])->save();
             }
 
             throw $e; // let Laravel retry or move to failed_jobs
@@ -96,10 +104,10 @@ class ExtractInvoiceJob implements ShouldQueue
      */
     public function failed(\Throwable $e): void
     {
-        $this->invoice->update([
+        $this->invoice->forceFill([
             'status' => 'error',
             'error_message' => $e->getMessage(),
-        ]);
+        ])->save();
 
         Log::channel('mistral')->error('Extraction job permanently failed', [
             'invoice_id' => $this->invoice->id,
