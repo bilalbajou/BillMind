@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\BlazeInvoiceExtractorService;
 use App\Services\MistralOcrService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -21,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MistralOcrService::class, function () {
             return new MistralOcrService(config('services.mistral.key'));
         });
+
+        $this->app->singleton(BlazeInvoiceExtractorService::class, function () {
+            return new BlazeInvoiceExtractorService(config('services.blaze.key'));
+        });
+
+
     }
 
     /**

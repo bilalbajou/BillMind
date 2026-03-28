@@ -4,6 +4,7 @@
 .env.backup
 .env.production
 .mcp.json
+queue-worker.bat
 .phpactor.json
 .phpunit.result.cache
 /.fleet

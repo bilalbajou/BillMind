@@ -9,10 +9,9 @@ class Tenant extends Model
 {
     use HasFactory;
 
-    // Only user-editable fields — sensitive fields (plan, trial_ends_at, is_active, slug)
-    // are excluded to prevent mass assignment via user-facing forms.
     protected $fillable = [
         'company_name',
+        'slug',
         'email',
         'phone',
         'website',
@@ -24,13 +23,9 @@ class Tenant extends Model
         'tax_id',
         'currency',
         'logo',
-    ];
-
-    protected $guarded = [
         'plan',
         'trial_ends_at',
         'is_active',
-        'slug',
     ];
 
     /**

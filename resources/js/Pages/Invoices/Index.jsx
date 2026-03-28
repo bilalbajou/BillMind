@@ -1,5 +1,5 @@
 import CategoryIcon from '@/Components/CategoryIcon';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, RotateCcw, Loader2 } from 'lucide-react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -47,8 +47,9 @@ export default function Index() {
     const [categoryId, setCategoryId] = useState(filters.category_id ?? '');
     const [dateFrom, setDateFrom]     = useState(filters.date_from ? new Date(filters.date_from) : null);
     const [dateTo, setDateTo]         = useState(filters.date_to ? new Date(filters.date_to) : null);
-    const [selected, setSelected]       = useState([]);
+    const [selected, setSelected]         = useState([]);
     const [liveStatuses, setLiveStatuses] = useState({}); // { [id]: { status, error_message } }
+    const [loadingIds, setLoadingIds]     = useState({}); // { [id]: true } while request in-flight
     const pollingRef = useRef(null);
 
     // Poll every 4s while any invoice on this page is still processing
@@ -314,8 +315,8 @@ export default function Index() {
                                                 <FileIcon mime={inv.mime_type} />
                                                 <div className="min-w-0">
                                                     <p className="font-medium text-gray-800 truncate max-w-[200px]">{inv.original_filename}</p>
-                                                    {inv.invoice_number && (
-                                                        <p className="text-xs text-gray-400">{inv.invoice_number}</p>
+                                                    {inv.number && (
+                                                        <p className="text-xs text-gray-400">{inv.number}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -334,7 +335,7 @@ export default function Index() {
                                         </td>
 
                                         {/* Supplier */}
-                                        <td className="px-5 py-3 text-gray-600">{inv.supplier ?? '—'}</td>
+                                        <td className="px-5 py-3 text-gray-600">{inv.supplier_name ?? '—'}</td>
 
                                         {/* Date */}
                                         <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>
@@ -364,14 +365,55 @@ export default function Index() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                     </svg>
                                                 </a>
-                                                {/* Extract */}
-                                                <button
-                                                    onClick={() => router.post(route('invoices.extract', inv.id), {}, { preserveScroll: true })}
-                                                    className="p-1.5 rounded-md text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition"
-                                                    title="Extract"
-                                                >
-                                                    <Sparkles className="w-5 h-5" />
-                                                </button>
+                                                {/* Extract / Retry / Processing spinner */}
+                                                {(() => {
+                                                    const currentStatus = liveStatuses[inv.id]?.status ?? inv.status;
+
+                                                    const isLoading = loadingIds[inv.id];
+
+                                                    if (currentStatus === 'processing' || isLoading) {
+                                                        return (
+                                                            <span className="p-1.5 text-blue-400">
+                                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                            </span>
+                                                        );
+                                                    }
+                                                    if (currentStatus === 'pending') {
+                                                        return (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setLoadingIds(p => ({ ...p, [inv.id]: true }));
+                                                                    router.post(route('invoices.extract', inv.id), {}, {
+                                                                        preserveScroll: true,
+                                                                        onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
+                                                                    });
+                                                                }}
+                                                                className="p-1.5 rounded-md text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                                                                title="Extract"
+                                                            >
+                                                                <Sparkles className="w-5 h-5" />
+                                                            </button>
+                                                        );
+                                                    }
+                                                    if (currentStatus === 'error') {
+                                                        return (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setLoadingIds(p => ({ ...p, [inv.id]: true }));
+                                                                    router.post(route('invoices.extract', inv.id), {}, {
+                                                                        preserveScroll: true,
+                                                                        onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
+                                                                    });
+                                                                }}
+                                                                className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                                                                title="Retry extraction"
+                                                            >
+                                                                <RotateCcw className="w-5 h-5" />
+                                                            </button>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                                 {/* Delete */}
                                                 <button
                                                     onClick={() => handleDelete(inv.id, inv.original_filename)}

@@ -39,6 +39,7 @@ class InvoiceUploadController extends Controller
             'stored_filename'   => $storedFilename,
             'file_path'         => $path,
             'mime_type'         => $file->getMimeType(),
+            'file_type'         => $file->getMimeType() === 'application/pdf' ? 'pdf' : 'image',
             'file_size'         => $file->getSize(),
             'status'            => 'pending',
         ]);

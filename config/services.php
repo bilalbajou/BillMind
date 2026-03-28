@@ -18,6 +18,10 @@ return [
         'key' => env('MISTRAL_API_KEY'),
     ],
 
+    'blaze' => [
+        'key' => env('BLAZE_API_KEY'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

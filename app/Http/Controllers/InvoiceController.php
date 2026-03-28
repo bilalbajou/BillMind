@@ -18,8 +18,8 @@ class InvoiceController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('original_filename', 'like', "%{$search}%")
-                  ->orWhere('invoice_number', 'like', "%{$search}%")
-                  ->orWhere('supplier', 'like', "%{$search}%");
+                    ->orWhere('number', 'like', "%{$search}%")
+                    ->orWhere('supplier_name', 'like', "%{$search}%");
             });
         }
 
@@ -39,13 +39,13 @@ class InvoiceController extends Controller
             $query->whereDate('created_at', '<=', $request->input('date_to'));
         }
 
-        $invoices   = $query->paginate(15)->withQueryString();
+        $invoices = $query->paginate(15)->withQueryString();
         $categories = InvoiceCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
 
         return Inertia::render('Invoices/Index', [
-            'invoices'   => $invoices,
+            'invoices' => $invoices,
             'categories' => $categories,
-            'filters'    => $request->only(['search', 'status', 'category_id', 'date_from', 'date_to']),
+            'filters' => $request->only(['search', 'status', 'category_id', 'date_from', 'date_to']),
         ]);
     }
 

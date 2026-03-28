@@ -23,28 +23,35 @@ class Invoice extends Model
     protected $fillable = [
         // File
         'tenant_id', 'uploaded_by',
-        'original_filename', 'stored_filename', 'file_path', 'file_hash', 'mime_type', 'file_size',
+        'original_filename', 'stored_filename', 'file_path', 'content_hash', 'mime_type', 'file_type', 'file_size',
         // Identification
-        'invoice_number', 'po_reference', 'invoice_date', 'due_date',
+        'number', 'po_reference', 'issue_date', 'due_date',
         // Supplier
-        'supplier', 'supplier_address', 'supplier_ice', 'supplier_if', 'supplier_rc',
+        'supplier_name', 'supplier_address', 'supplier_ice', 'supplier_if', 'supplier_rc',
         'supplier_phone', 'supplier_email', 'supplier_rib',
         // Customer
         'customer_name', 'customer_address', 'customer_ice', 'customer_if',
         // Amounts
-        'amount_ht', 'vat_rate', 'tva', 'amount_ttc', 'currency', 'discount',
+        'subtotal_ht', 'discount_rate', 'discount_amount', 'taxable_amount',
+        'vat_rate', 'vat_amount', 'total_ttc', 'currency', 'amount_in_words',
         // Payment
-        'payment_method', 'payment_terms', 'bank_name', 'bank_rib', 'bank_iban',
+        'payment_method', 'payment_terms', 'payment_reference', 'late_penalty',
+        'bank_name', 'bank_iban',
         // AI / OCR
-        'category', 'category_id', 'category_corrected_id', 'category_confidence',
-        'ocr_text', 'extraction_confidence',
-        // Status
+        'category', 'category_id', 'category_corrected_id', 'category_score',
+        'ocr_text', 'extraction_score',
+        // Status & anomaly flags
         'status', 'error_message',
+        'is_duplicate', 'amount_anomaly', 'date_anomaly', 'new_supplier',
     ];
 
     protected $casts = [
-        'invoice_date' => 'date',
-        'due_date'     => 'date',
+        'issue_date'     => 'date',
+        'due_date'       => 'date',
+        'is_duplicate'   => 'boolean',
+        'amount_anomaly' => 'boolean',
+        'date_anomaly'   => 'boolean',
+        'new_supplier'   => 'boolean',
     ];
 
     public function tenant()
@@ -69,6 +76,6 @@ class Invoice extends Model
 
     public function items()
     {
-        return $this->hasMany(InvoiceItem::class)->orderBy('line_order');
+        return $this->hasMany(InvoiceItem::class)->orderBy('sort_order');
     }
 }
