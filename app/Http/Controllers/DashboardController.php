@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Invoice;
 use App\Models\InvoiceCategory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,7 +21,8 @@ class DashboardController extends Controller
             ->get(['id', 'name', 'slug', 'color', 'icon']);
 
         return Inertia::render('Dashboard', [
-            'categories' => $categories,
+            'categories'     => $categories,
+            'totalInvoices'  => Invoice::count(),
         ]);
     }
 }

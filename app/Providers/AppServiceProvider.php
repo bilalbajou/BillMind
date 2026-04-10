@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Services\BlazeInvoiceExtractorService;
+use App\Services\OpenAiInvoiceExtractorService;
 use App\Services\MistralOcrService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -23,8 +23,8 @@ class AppServiceProvider extends ServiceProvider
             return new MistralOcrService(config('services.mistral.key'));
         });
 
-        $this->app->singleton(BlazeInvoiceExtractorService::class, function () {
-            return new BlazeInvoiceExtractorService(config('services.blaze.key'));
+        $this->app->singleton(OpenAiInvoiceExtractorService::class, function () {
+            return new OpenAiInvoiceExtractorService(config('services.openai.key'));
         });
 
 

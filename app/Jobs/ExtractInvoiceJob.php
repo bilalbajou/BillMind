@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Invoice;
 use App\Models\InvoiceCategory;
-use App\Services\BlazeInvoiceExtractorService;
+use App\Services\OpenAiInvoiceExtractorService;
 use App\Services\MistralOcrService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -23,7 +23,7 @@ class ExtractInvoiceJob implements ShouldQueue
     {
     }
 
-    public function handle(MistralOcrService $ocr, BlazeInvoiceExtractorService $blaze): void
+    public function handle(MistralOcrService $ocr, OpenAiInvoiceExtractorService $extractor): void
     {
         // forceFill() is required because status/error_message are intentionally excluded
         // from $fillable — they must only be written by this job, never by OCR output.
@@ -42,13 +42,13 @@ class ExtractInvoiceJob implements ShouldQueue
                 $this->invoice->mime_type
             );
 
-            // Step 2 — Blaze AI structured extraction
+            // Step 2 — OpenRouter structured extraction
             $categories = InvoiceCategory::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'name', 'description'])
                 ->toArray();
 
-            $extracted = $blaze->extractFromText($ocrResult['ocr_text'], $categories);
+            $extracted = $extractor->extractFromText($ocrResult['ocr_text'], $categories);
 
             // Step 3 — Save AI-extracted invoice fields via normal update() so $fillable
             // acts as a hard barrier: any field the AI returns that is not in $fillable

@@ -10,7 +10,7 @@ class InvoiceItem extends Model
     protected $fillable = [
         'invoice_id',
         'sort_order', 'description', 'sub_description', 'quantity', 'unit',
-        'unit_price', 'vat_rate', 'vat_amount', 'amount_ht', 'amount_ttc',
+        'unit_price', 'vat_rate', 'amount_ht',
         'discount_rate', 'discount_amount',
     ];
 
@@ -27,6 +27,19 @@ class InvoiceItem extends Model
 
     protected static function booted(): void
     {
+        $compute = function (self $item) {
+            $amountHt = (float) ($item->amount_ht ?? 0);
+            if ($amountHt <= 0) {
+                return;
+            }
+            $vatRate       = (float) ($item->vat_rate ?? 0);
+            $item->vat_amount = round($amountHt * $vatRate / 100, 2);
+            $item->amount_ttc = round($amountHt + $item->vat_amount, 2);
+        };
+
+        static::creating($compute);
+        static::updating($compute);
+
         // InvoiceItem has no tenant_id column of its own.
         // Isolation is enforced by restricting invoice_id to invoices that belong
         // to the current tenant. Invoice::select('id') already carries the tenant

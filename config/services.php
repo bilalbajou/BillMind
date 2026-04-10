@@ -18,8 +18,8 @@ return [
         'key' => env('MISTRAL_API_KEY'),
     ],
 
-    'blaze' => [
-        'key' => env('BLAZE_API_KEY'),
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
     ],
 
     'postmark' => [

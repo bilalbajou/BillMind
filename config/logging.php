@@ -60,9 +60,9 @@ return [
             'replace_placeholders' => true,
         ],
 
-        'blaze' => [
+        'openrouter' => [
             'driver' => 'daily',
-            'path'   => storage_path('logs/blaze.log'),
+            'path'   => storage_path('logs/openrouter.log'),
             'level'  => 'debug',
             'days'   => 30,
             'replace_placeholders' => true,

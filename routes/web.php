@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoiceUploadController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\CategoryController;
 use App\Http\Controllers\Settings\CompanyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +47,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/settings/company', [CompanyController::class, 'edit'])->name('settings.company');
     Route::patch('/settings/company', [CompanyController::class, 'update'])->name('settings.company.update');
+
+    Route::get('/settings/categories', [CategoryController::class, 'index'])->name('settings.categories');
+    Route::post('/settings/categories', [CategoryController::class, 'store'])->name('settings.categories.store');
+    Route::patch('/settings/categories/{category}/toggle', [CategoryController::class, 'toggle'])->name('settings.categories.toggle');
+    Route::delete('/settings/categories/{category}', [CategoryController::class, 'destroy'])->name('settings.categories.destroy');
 });
 
 require __DIR__ . '/auth.php';

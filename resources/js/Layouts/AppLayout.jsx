@@ -78,6 +78,11 @@ const Icon = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
     ),
+    categories: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+        </svg>
+    ),
 };
 
 // ─── Nav structure ─────────────────────────────────────────────────────────────
@@ -93,7 +98,6 @@ const navSections = [
         items: [
             { label: 'All Invoices', href: '/invoices', routeName: 'invoices.index', icon: Icon.invoices },
             { label: 'Upload', href: '/invoices/upload', routeName: 'invoices.upload', icon: Icon.upload },
-            { label: 'Pending', href: '/invoices/pending', routeName: 'invoices.pending', icon: Icon.pending },
             { label: 'Anomalies', href: '/invoices/anomalies', routeName: 'invoices.anomalies', icon: Icon.anomaly, badge: 0 },
         ],
     },
@@ -120,6 +124,7 @@ const navSections = [
         items: [
             { label: 'My Profile', href: '/profile', routeName: 'profile.edit', icon: Icon.profile },
             { label: 'Company', href: '/settings/company', routeName: 'settings.company', icon: Icon.company },
+            { label: 'Categories', href: '/settings/categories', routeName: 'settings.categories', icon: Icon.categories },
             { label: 'Subscription', href: '/settings/billing', routeName: 'settings.billing', icon: Icon.billing },
         ],
     },

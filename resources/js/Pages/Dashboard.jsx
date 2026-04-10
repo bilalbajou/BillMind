@@ -2,10 +2,10 @@ import CategoryIcon from '@/Components/CategoryIcon';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, usePage } from '@inertiajs/react';
 
-const stats = [
+const buildStats = (totalInvoices) => [
     {
         label: 'Total Invoices',
-        value: '0',
+        value: totalInvoices.toString(),
         change: '+0%',
         icon: (
             <svg className="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
@@ -52,9 +52,11 @@ const stats = [
 
 const recentInvoices = [];
 
+
 export default function Dashboard() {
-    const { auth, categories = [] } = usePage().props;
+    const { auth, categories = [], totalInvoices = 0 } = usePage().props;
     const user = auth.user;
+    const stats = buildStats(totalInvoices);
 
     return (
         <AppLayout

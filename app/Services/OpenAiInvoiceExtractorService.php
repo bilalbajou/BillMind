@@ -5,56 +5,81 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class BlazeInvoiceExtractorService
+class OpenAiInvoiceExtractorService
 {
-    private const ENDPOINT = 'https://blazeai.boxu.dev/api/v1/chat/completions';
-    private const MODEL    = 'anthropic/claude-sonnet-4-6';
+    private const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+    private const MODEL = 'gpt-4o-mini';
 
     private const INVOICE_FIELDS = [
-        'number', 'po_reference', 'issue_date', 'due_date',
-        'supplier_name', 'supplier_address', 'supplier_ice', 'supplier_if',
-        'supplier_rc', 'supplier_phone', 'supplier_email', 'supplier_rib',
-        'customer_name', 'customer_address', 'customer_ice', 'customer_if',
-        'subtotal_ht', 'discount_rate', 'discount_amount', 'taxable_amount',
-        'vat_rate', 'vat_amount', 'total_ttc', 'currency', 'amount_in_words',
-        'payment_method', 'payment_terms', 'payment_reference', 'late_penalty',
-        'bank_name', 'bank_iban',
+        'number',
+        'po_reference',
+        'issue_date',
+        'due_date',
+        'supplier_name',
+        'supplier_address',
+        'supplier_ice',
+        'supplier_if',
+        'supplier_rc',
+        'supplier_phone',
+        'supplier_email',
+        'supplier_rib',
+        'customer_name',
+        'customer_address',
+        'customer_ice',
+        'customer_if',
+        'subtotal_ht',
+        'discount_rate',
+        'discount_amount',
+        'taxable_amount',
+        'vat_rate',
+        'vat_amount',
+        'total_ttc',
+        'currency',
+        'amount_in_words',
+        'payment_method',
+        'payment_terms',
+        'payment_reference',
+        'late_penalty',
+        'bank_name',
+        'bank_iban',
     ];
 
-    public function __construct(private readonly string $apiKey) {}
+    public function __construct(private readonly string $apiKey)
+    {
+    }
 
     public function extractFromText(string $ocrText, array $categories = []): array
     {
-        Log::channel('blaze')->info('Blaze request sent', [
-            'text_length'      => strlen($ocrText),
+        Log::channel('openrouter')->info('Blaze request sent', [
+            'text_length' => strlen($ocrText),
             'categories_count' => count($categories),
         ]);
 
         $response = Http::withToken($this->apiKey)
-            ->timeout(60)
+            ->timeout(150)
             ->when(app()->isLocal(), fn($h) => $h->withoutVerifying())
             ->post(self::ENDPOINT, [
-                'model'       => self::MODEL,
+                'model' => self::MODEL,
                 'temperature' => 0,
-                'messages'    => [
+                'messages' => [
                     ['role' => 'system', 'content' => $this->systemPrompt($categories)],
-                    ['role' => 'user',   'content' => $ocrText],
+                    ['role' => 'user', 'content' => $ocrText],
                 ],
             ]);
 
         if ($response->failed()) {
-            Log::channel('blaze')->error('Blaze request failed', [
+            Log::channel('openrouter')->error('Blaze request failed', [
                 'http_status' => $response->status(),
-                'response'    => $response->body(),
+                'response' => $response->body(),
             ]);
             throw new \RuntimeException('Blaze API error ' . $response->status() . ': ' . $response->body());
         }
 
         $raw = $response->json('choices.0.message.content') ?? '';
 
-        Log::channel('blaze')->info('Blaze response received', [
+        Log::channel('openrouter')->info('Blaze response received', [
             'raw_length' => strlen($raw),
-            'raw'        => $raw,
+            'raw' => $raw,
         ]);
 
         // Strip markdown code fences if the model wrapped the JSON
@@ -79,7 +104,7 @@ class BlazeInvoiceExtractorService
 
         return [
             'fields' => $fields,
-            'items'  => $this->normalizeItems($parsed['items'] ?? []),
+            'items' => $this->normalizeItems($parsed['items'] ?? []),
         ];
     }
 
@@ -172,9 +197,18 @@ PROMPT;
 
     private function normalizeItems(array $items): array
     {
-        $allowed = ['sort_order', 'description', 'sub_description', 'quantity', 'unit',
-                    'unit_price', 'vat_rate', 'vat_amount', 'amount_ht', 'amount_ttc',
-                    'discount_rate', 'discount_amount'];
+        $allowed = [
+            'sort_order',
+            'description',
+            'sub_description',
+            'quantity',
+            'unit',
+            'unit_price',
+            'vat_rate',
+            'amount_ht',
+            'discount_rate',
+            'discount_amount'
+        ];
 
         return array_map(function ($item, $index) use ($allowed) {
             $normalized = array_intersect_key($item, array_flip($allowed));
@@ -202,14 +236,37 @@ PROMPT;
 
         // Common aliases
         $map = [
-            'pcs' => 'piece', 'pc' => 'piece', 'unit' => 'piece', 'units' => 'piece',
-            'u' => 'piece', 'qty' => 'piece', 'item' => 'piece', 'items' => 'piece',
-            'h' => 'hour', 'hr' => 'hour', 'hrs' => 'hour', 'hours' => 'hour', 'heure' => 'hour', 'heures' => 'hour',
-            'kilogram' => 'kg', 'kilograms' => 'kg', 'kgs' => 'kg',
-            'forfait' => 'flat_fee', 'flat' => 'flat_fee', 'fixed' => 'flat_fee', 'lump' => 'flat_fee',
-            'kilometre' => 'km', 'kilometres' => 'km', 'kilometer' => 'km',
-            'jour' => 'day', 'jours' => 'day', 'days' => 'day', 'd' => 'day',
-            'mois' => 'month', 'months' => 'month', 'mo' => 'month',
+            'pcs' => 'piece',
+            'pc' => 'piece',
+            'unit' => 'piece',
+            'units' => 'piece',
+            'u' => 'piece',
+            'qty' => 'piece',
+            'item' => 'piece',
+            'items' => 'piece',
+            'h' => 'hour',
+            'hr' => 'hour',
+            'hrs' => 'hour',
+            'hours' => 'hour',
+            'heure' => 'hour',
+            'heures' => 'hour',
+            'kilogram' => 'kg',
+            'kilograms' => 'kg',
+            'kgs' => 'kg',
+            'forfait' => 'flat_fee',
+            'flat' => 'flat_fee',
+            'fixed' => 'flat_fee',
+            'lump' => 'flat_fee',
+            'kilometre' => 'km',
+            'kilometres' => 'km',
+            'kilometer' => 'km',
+            'jour' => 'day',
+            'jours' => 'day',
+            'days' => 'day',
+            'd' => 'day',
+            'mois' => 'month',
+            'months' => 'month',
+            'mo' => 'month',
         ];
 
         return $map[$value] ?? 'other';
