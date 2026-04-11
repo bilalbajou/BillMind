@@ -28,6 +28,8 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'categories'     => $categories,
             'totalInvoices'  => Invoice::count(),
+            'totalRevenue'   => (float) Invoice::where('status', 'processed')->sum('total_ttc'),
+            'pendingInvoices' => Invoice::where('status', 'pending')->count(),
             'recentInvoices' => $recentInvoices,
         ]);
     }

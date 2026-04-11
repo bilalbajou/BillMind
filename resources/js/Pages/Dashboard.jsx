@@ -2,7 +2,7 @@ import CategoryIcon from '@/Components/CategoryIcon';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
-const buildStats = (totalInvoices) => [
+const buildStats = (totalInvoices, totalRevenue, pendingInvoices) => [
     {
         label: 'Total Invoices',
         value: totalInvoices.toString(),
@@ -15,9 +15,9 @@ const buildStats = (totalInvoices) => [
         bg: 'bg-indigo-100',
     },
     {
-        label: 'Revenue This Month',
-        value: '$0.00',
-        change: '+0%',
+        label: 'Revenue',
+        value: new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2 }).format(totalRevenue),
+        change: 'All processed invoices',
         icon: (
             <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
@@ -28,8 +28,8 @@ const buildStats = (totalInvoices) => [
     },
     {
         label: 'Pending Invoices',
-        value: '0',
-        change: '0 overdue',
+        value: pendingInvoices.toString(),
+        change: 'Awaiting extraction',
         icon: (
             <svg className="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
@@ -68,9 +68,9 @@ function formatDate(date) {
 }
 
 export default function Dashboard() {
-    const { auth, categories = [], totalInvoices = 0, recentInvoices = [] } = usePage().props;
+    const { auth, categories = [], totalInvoices = 0, totalRevenue = 0, pendingInvoices = 0, recentInvoices = [] } = usePage().props;
     const user = auth.user;
-    const stats = buildStats(totalInvoices);
+    const stats = buildStats(totalInvoices, totalRevenue, pendingInvoices);
 
     return (
         <AppLayout
