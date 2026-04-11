@@ -1,6 +1,6 @@
 import CategoryIcon from '@/Components/CategoryIcon';
 import AppLayout from '@/Layouts/AppLayout';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 const buildStats = (totalInvoices) => [
     {
@@ -50,11 +50,25 @@ const buildStats = (totalInvoices) => [
     },
 ];
 
-const recentInvoices = [];
+const STATUS_STYLES = {
+    pending:    'bg-gray-100 text-gray-600',
+    processing: 'bg-blue-100 text-blue-700',
+    processed:  'bg-green-100 text-green-700',
+    error:      'bg-red-100 text-red-700',
+};
 
+function formatAmount(amount, currency = 'MAD') {
+    if (amount == null) return '—';
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2 }).format(amount) + ' ' + currency;
+}
+
+function formatDate(date) {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 export default function Dashboard() {
-    const { auth, categories = [], totalInvoices = 0 } = usePage().props;
+    const { auth, categories = [], totalInvoices = 0, recentInvoices = [] } = usePage().props;
     const user = auth.user;
     const stats = buildStats(totalInvoices);
 
@@ -93,24 +107,24 @@ export default function Dashboard() {
             <div className="bg-white rounded-lg shadow p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
                 <div className="flex flex-wrap gap-3">
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
-                        </svg>
-                        New Invoice
-                    </button>
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    <Link
+                        href="/invoices/upload"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd"/>
                         </svg>
                         Upload Invoice
-                    </button>
-                    <button className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    </Link>
+                    <Link
+                        href="/settings/categories"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                    >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                            <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
                         </svg>
-                        Add Client
-                    </button>
+                        Add Invoice Category
+                    </Link>
                 </div>
             </div>
 
@@ -179,58 +193,63 @@ export default function Dashboard() {
             <div className="bg-white rounded-lg shadow">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <h2 className="text-lg font-semibold text-gray-900">Recent Invoices</h2>
-                    <a href="#" className="text-sm font-medium text-indigo-600 hover:underline">
+                    <Link href="/invoices" className="text-sm font-medium text-indigo-600 hover:underline">
                         View all
-                    </a>
+                    </Link>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-gray-500">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-500 uppercase bg-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-3">Invoice</th>
-                                <th scope="col" className="px-6 py-3">Client</th>
-                                <th scope="col" className="px-6 py-3">Date</th>
-                                <th scope="col" className="px-6 py-3">Amount</th>
-                                <th scope="col" className="px-6 py-3">Status</th>
-                                <th scope="col" className="px-6 py-3"><span className="sr-only">Actions</span></th>
+                                <th className="px-6 py-3">Invoice</th>
+                                <th className="px-6 py-3 hidden md:table-cell">Supplier</th>
+                                <th className="px-6 py-3 hidden sm:table-cell">Date</th>
+                                <th className="px-6 py-3 text-right">Amount</th>
+                                <th className="px-6 py-3">Status</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100">
                             {recentInvoices.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                    <td colSpan={5} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center gap-3">
                                             <svg className="w-12 h-12 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/>
                                             </svg>
                                             <p className="text-gray-500 font-medium">No invoices yet</p>
-                                            <p className="text-sm text-gray-400">Create your first invoice to get started.</p>
-                                            <button className="mt-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                                                Create Invoice
-                                            </button>
+                                            <p className="text-sm text-gray-400">Upload your first invoice to get started.</p>
+                                            <Link href="/invoices/upload" className="mt-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                                                Upload Invoice
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 recentInvoices.map((invoice) => (
-                                    <tr key={invoice.id} className="bg-white border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4 font-medium text-gray-900">#{invoice.number}</td>
-                                        <td className="px-6 py-4">{invoice.client}</td>
-                                        <td className="px-6 py-4">{invoice.date}</td>
-                                        <td className="px-6 py-4 font-semibold text-gray-900">{invoice.amount}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                invoice.status === 'paid'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : invoice.status === 'pending'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-red-100 text-red-800'
-                                            }`}>
+                                    <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-3">
+                                            <p className="font-semibold text-gray-900">
+                                                {invoice.number ?? <span className="italic text-gray-400 font-normal">No number</span>}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[160px]">
+                                                {invoice.original_filename}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-3 hidden md:table-cell">
+                                            <p className="text-gray-700 max-w-[180px] truncate">
+                                                {invoice.supplier_name ?? <span className="text-gray-300 italic">—</span>}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-3 hidden sm:table-cell text-gray-500">
+                                            {formatDate(invoice.issue_date)}
+                                        </td>
+                                        <td className="px-6 py-3 text-right font-semibold text-gray-900">
+                                            {formatAmount(invoice.total_ttc, invoice.currency)}
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[invoice.status] ?? 'bg-gray-100 text-gray-600'}`}>
                                                 {invoice.status}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <a href="#" className="font-medium text-indigo-600 hover:underline">View</a>
                                         </td>
                                     </tr>
                                 ))

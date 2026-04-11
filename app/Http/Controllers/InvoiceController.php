@@ -85,6 +85,26 @@ class InvoiceController extends Controller
         return back()->with('success', "{$count} invoice(s) moved to trash.");
     }
 
+    public function anomalies()
+    {
+        $invoices = Invoice::with(['category'])
+            ->where(function ($q) {
+                $q->where('is_duplicate', true)
+                  ->orWhere('amount_anomaly', true)
+                  ->orWhere('vat_mismatch', true)
+                  ->orWhere('date_anomaly', true)
+                  ->orWhere('new_supplier', true);
+            })
+            ->where('status', 'processed')
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('Invoices/Anomalies', [
+            'invoices' => $invoices,
+        ]);
+    }
+
     public function bulkExtract(Request $request)
     {
         $validated = $request->validate(['ids' => ['required', 'array'], 'ids.*' => ['integer']]);

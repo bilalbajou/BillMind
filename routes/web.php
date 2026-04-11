@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/statuses', [InvoiceController::class, 'statuses'])->name('invoices.statuses');
+    Route::get('/invoices/anomalies', [InvoiceController::class, 'anomalies'])->name('invoices.anomalies');
     Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     Route::post('/invoices/{id}/extract', [InvoiceController::class, 'extract'])->name('invoices.extract');
     Route::post('/invoices/bulk-destroy', [InvoiceController::class, 'bulkDestroy'])->name('invoices.bulk-destroy');

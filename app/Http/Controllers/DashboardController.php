@@ -20,9 +20,15 @@ class DashboardController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name', 'slug', 'color', 'icon']);
 
+        $recentInvoices = Invoice::with('category')
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'number', 'supplier_name', 'original_filename', 'issue_date', 'total_ttc', 'currency', 'status', 'category_id']);
+
         return Inertia::render('Dashboard', [
             'categories'     => $categories,
             'totalInvoices'  => Invoice::count(),
+            'recentInvoices' => $recentInvoices,
         ]);
     }
 }

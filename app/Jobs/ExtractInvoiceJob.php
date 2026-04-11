@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Invoice;
 use App\Models\InvoiceCategory;
+use App\Services\AnomalyDetectorService;
 use App\Services\OpenAiInvoiceExtractorService;
 use App\Services\MistralOcrService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -23,7 +24,7 @@ class ExtractInvoiceJob implements ShouldQueue
     {
     }
 
-    public function handle(MistralOcrService $ocr, OpenAiInvoiceExtractorService $extractor): void
+    public function handle(MistralOcrService $ocr, OpenAiInvoiceExtractorService $extractor, AnomalyDetectorService $detector): void
     {
         // forceFill() is required because status/error_message are intentionally excluded
         // from $fillable — they must only be written by this job, never by OCR output.
@@ -59,10 +60,16 @@ class ExtractInvoiceJob implements ShouldQueue
                 'ocr_text' => $ocrResult['ocr_text'],
             ]);
 
-            // Step 4 — Mark as processed via forceFill() — not part of AI output.
+            // Step 4 — Detect anomalies on the freshly saved data and persist flags.
+            // forceFill() is used because anomaly flags are excluded from $fillable.
+            $this->invoice->refresh(); // ensure computed fields are up-to-date
+            $anomalies = $detector->detect($this->invoice);
+            $this->invoice->forceFill($anomalies)->save();
+
+            // Step 5 — Mark as processed via forceFill() — not part of AI output.
             $this->invoice->forceFill(['status' => 'processed'])->save();
 
-            // Step 5 — Save line items
+            // Step 7 — Save line items
             if (!empty($extracted['items'])) {
                 $this->invoice->items()->delete();
                 foreach ($extracted['items'] as $item) {

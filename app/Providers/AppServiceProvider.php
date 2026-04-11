@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\AnomalyDetectorService;
 use App\Services\OpenAiInvoiceExtractorService;
 use App\Services\MistralOcrService;
 use Illuminate\Support\Facades\Schema;
@@ -27,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
             return new OpenAiInvoiceExtractorService(config('services.openai.key'));
         });
 
-
+        $this->app->singleton(AnomalyDetectorService::class, fn () => new AnomalyDetectorService());
     }
 
     /**

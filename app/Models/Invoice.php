@@ -48,6 +48,7 @@ class Invoice extends Model
         'due_date'       => 'date',
         'is_duplicate'   => 'boolean',
         'amount_anomaly' => 'boolean',
+        'vat_mismatch'   => 'boolean',
         'date_anomaly'   => 'boolean',
         'new_supplier'   => 'boolean',
     ];
