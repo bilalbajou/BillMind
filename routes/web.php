@@ -39,9 +39,8 @@ Route::middleware('auth')->group(function () {
          ->middleware('throttle:20,1')
          ->name('invoices.upload.file');
     Route::get('/invoices/{id}/download', [InvoiceUploadController::class, 'download'])->name('invoices.download');
+    Route::get('/invoices/{id}/show', [InvoiceController::class, 'show'])->name('invoices.show');
 
-
-    
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

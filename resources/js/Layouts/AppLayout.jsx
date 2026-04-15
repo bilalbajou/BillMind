@@ -105,8 +105,6 @@ const navSections = [
         label: 'Analytics',
         items: [
             { label: 'Overview', href: '/analytics', routeName: 'analytics.index', icon: Icon.chart },
-            { label: 'Reports', href: '/analytics/reports', routeName: 'analytics.reports', icon: Icon.report },
-            { label: 'Suppliers', href: '/analytics/suppliers', routeName: 'analytics.suppliers', icon: Icon.supplier },
         ],
     },
     {

@@ -65,6 +65,13 @@ class InvoiceController extends Controller
         return back()->with('success', 'Extraction started.');
     }
 
+    public function show(int $id)
+    {
+        $invoice = Invoice::with(['category', 'correctedCategory', 'items', 'uploadedBy'])->findOrFail($id);
+
+        return response()->json($invoice);
+    }
+
     public function statuses(Request $request)
     {
         $ids = array_map('intval', (array) $request->input('ids', []));

@@ -11,21 +11,21 @@ import Swal from 'sweetalert2';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
-    { value: 'pending',    label: 'Pending' },
+    { value: 'pending', label: 'Pending' },
     { value: 'processing', label: 'Processing' },
-    { value: 'processed',  label: 'Processed' },
-    { value: 'validated',  label: 'Validated' },
-    { value: 'archived',   label: 'Archived' },
-    { value: 'error',      label: 'Error' },
+    { value: 'processed', label: 'Processed' },
+    { value: 'validated', label: 'Validated' },
+    { value: 'archived', label: 'Archived' },
+    { value: 'error', label: 'Error' },
 ];
 
 const STATUS_BADGE = {
-    pending:    'bg-yellow-50 text-yellow-700 ring-yellow-200',
+    pending: 'bg-yellow-50 text-yellow-700 ring-yellow-200',
     processing: 'bg-blue-50 text-blue-700 ring-blue-200',
-    processed:  'bg-green-50 text-green-700 ring-green-200',
-    validated:  'bg-indigo-50 text-indigo-700 ring-indigo-200',
-    archived:   'bg-gray-100 text-gray-600 ring-gray-200',
-    error:      'bg-red-50 text-red-700 ring-red-200',
+    processed: 'bg-green-50 text-green-700 ring-green-200',
+    validated: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+    archived: 'bg-gray-100 text-gray-600 ring-gray-200',
+    error: 'bg-red-50 text-red-700 ring-red-200',
 };
 
 function formatSize(bytes) {
@@ -40,17 +40,275 @@ function formatDate(str) {
     return new Date(str).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function formatAmount(amount, currency = 'MAD') {
+    if (amount == null) return '—';
+    return new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2 }).format(amount) + ' ' + currency;
+}
+
+function DetailRow({ label, value, className = '' }) {
+    return (
+        <div className={className}>
+            <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+            <p className="text-sm font-medium text-gray-900">{value || '—'}</p>
+        </div>
+    );
+}
+
+function DetailSection({ title, children }) {
+    return (
+        <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{title}</h3>
+            {children}
+        </div>
+    );
+}
+
+function AnomalyBadge({ active, label, color }) {
+    if (!active) return null;
+    return (
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${color}`}>
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+            {label}
+        </span>
+    );
+}
+
+function InvoiceDetailPanel({ invoice, onClose }) {
+    if (!invoice) return null;
+
+    const hasAnomalies = invoice.is_duplicate || invoice.amount_anomaly || invoice.vat_mismatch || invoice.date_anomaly || invoice.new_supplier;
+
+    return (
+        <>
+            <div className="fixed inset-0 bg-black/30 z-40 transition-opacity" onClick={onClose} />
+            <div className="fixed inset-y-0 right-0 z-50 w-full max-w-3xl bg-white shadow-2xl flex flex-col">
+                {/* Header */}
+                <div className="flex items-start justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                        {invoice.category && (
+                            <CategoryIcon icon={invoice.category.icon} color={invoice.category.color} size={20} />
+                        )}
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900">
+                                {invoice.number ?? <span className="italic text-gray-400">N/A</span>}
+                            </h2>
+                            <p className="text-sm text-gray-500">{invoice.supplier_name ?? '—'}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${STATUS_BADGE['processed']}`}>
+                            processed
+                        </span>
+                        <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                    {/* Key Info */}
+                    <DetailSection title="Invoice Information">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-gray-50 border border-gray-100 rounded-lg p-4">
+                            <DetailRow label="Issue Date" value={formatDate(invoice.issue_date)} />
+                            <DetailRow label="Due Date" value={formatDate(invoice.due_date)} />
+                            <DetailRow label="PO Reference" value={invoice.po_reference} />
+                            <DetailRow label="Currency" value={invoice.currency} />
+                            <DetailRow label="Category" value={invoice.category?.name} />
+                            {invoice.category_corrected_id && invoice.corrected_category && (
+                                <DetailRow label="Corrected Category" value={invoice.corrected_category.name} />
+                            )}
+                            {invoice.category_score != null && (
+                                <DetailRow label="Category Score" value={`${Number(invoice.category_score).toFixed(0)}%`} />
+                            )}
+                            {invoice.extraction_score != null && (
+                                <DetailRow label="Extraction Score" value={`${Number(invoice.extraction_score).toFixed(0)}%`} />
+                            )}
+                        </div>
+                    </DetailSection>
+
+                    {/* Supplier Details */}
+                    <DetailSection title="Supplier">
+                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <DetailRow label="Name" value={invoice.supplier_name} />
+                            <DetailRow label="Address" value={invoice.supplier_address} className="col-span-2" />
+                            <DetailRow label="ICE" value={invoice.supplier_ice} />
+                            <DetailRow label="IF" value={invoice.supplier_if} />
+                            <DetailRow label="RC" value={invoice.supplier_rc} />
+                            <DetailRow label="Phone" value={invoice.supplier_phone} />
+                            <DetailRow label="Email" value={invoice.supplier_email} />
+                            <DetailRow label="RIB" value={invoice.supplier_rib} />
+                        </div>
+                    </DetailSection>
+
+                    {/* Customer Details */}
+                    {(invoice.customer_name || invoice.customer_address || invoice.customer_ice || invoice.customer_if) && (
+                        <DetailSection title="Customer">
+                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <DetailRow label="Name" value={invoice.customer_name} />
+                                <DetailRow label="Address" value={invoice.customer_address} className="col-span-2" />
+                                <DetailRow label="ICE" value={invoice.customer_ice} />
+                                <DetailRow label="IF" value={invoice.customer_if} />
+                            </div>
+                        </DetailSection>
+                    )}
+
+                    {/* Line Items */}
+                    <DetailSection title="Line Items">
+                        <div className="border border-gray-100 rounded-lg overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50/50">
+                                    <tr>
+                                        <th className="px-4 py-2 font-medium text-gray-500">#</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500">Description</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">Qty</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">Unit Price</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">Disc.</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">HT</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">TVA %</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">TVA</th>
+                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">TTC</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {invoice.items && invoice.items.length > 0 ? invoice.items.map((item, idx) => {
+                                        const vatAmount = item.vat_amount != null
+                                            ? Number(item.vat_amount)
+                                            : Math.round(Number(item.amount_ht) * Number(item.vat_rate) / 100 * 100) / 100;
+                                        return (
+                                        <tr key={item.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 text-gray-400 text-xs">{idx + 1}</td>
+                                            <td className="px-4 py-3 text-gray-800">
+                                                <div>{item.description}</div>
+                                                {item.sub_description && <div className="text-xs text-gray-400 mt-0.5">{item.sub_description}</div>}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">
+                                                {Number(item.quantity) !== 0 ? Number(item.quantity) : ''} {item.unit !== 'piece' && item.unit !== 'other' && item.unit !== null ? item.unit : ''}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatAmount(item.unit_price, invoice.currency)}</td>
+                                            <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
+                                                {Number(item.discount_rate) > 0 ? `${Number(item.discount_rate)}%` : ''}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatAmount(item.amount_ht, invoice.currency)}</td>
+                                            <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
+                                                {Number(item.vat_rate) > 0 ? `${Number(item.vat_rate)}%` : '—'}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatAmount(vatAmount, invoice.currency)}</td>
+                                            <td className="px-4 py-3 text-right text-gray-800 font-medium whitespace-nowrap">{formatAmount(item.amount_ttc, invoice.currency)}</td>
+                                        </tr>
+                                        );
+                                    }) : (
+                                        <tr><td colSpan="9" className="px-4 py-4 text-center text-gray-400">No items found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </DetailSection>
+
+                    {/* Financial Summary */}
+                    <DetailSection title="Financial Summary">
+                        {(() => {
+                            const totalVat = (invoice.items ?? []).reduce((sum, item) => {
+                                const vatAmount = item.vat_amount != null
+                                    ? Number(item.vat_amount)
+                                    : Math.round(Number(item.amount_ht) * Number(item.vat_rate) / 100 * 100) / 100;
+                                return sum + (vatAmount || 0);
+                            }, 0);
+                            return (
+                            <div className="flex justify-end">
+                                <div className="w-72 space-y-2 bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                    <div className="flex justify-between text-sm text-gray-600">
+                                        <span>Sous-total HT</span>
+                                        <span>{formatAmount(invoice.subtotal_ht, invoice.currency)}</span>
+                                    </div>
+                                    {Number(invoice.discount_rate) > 0 && (
+                                        <div className="flex justify-between text-sm text-red-600">
+                                            <span>Remise ({Number(invoice.discount_rate)}%)</span>
+                                            <span>- {formatAmount(invoice.discount_amount, invoice.currency)}</span>
+                                        </div>
+                                    )}
+                                    {invoice.taxable_amount != null && Number(invoice.subtotal_ht) !== Number(invoice.taxable_amount) && (
+                                        <div className="flex justify-between text-sm text-gray-600">
+                                            <span>Montant imposable</span>
+                                            <span>{formatAmount(invoice.taxable_amount, invoice.currency)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-sm text-gray-600">
+                                        <span>Total TVA</span>
+                                        <span className="font-medium text-indigo-600">{formatAmount(totalVat, invoice.currency)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-base font-semibold text-gray-900 border-t border-gray-200 pt-2 mt-2">
+                                        <span>Total TTC</span>
+                                        <span>{formatAmount(invoice.total_ttc, invoice.currency)}</span>
+                                    </div>
+                                    {invoice.amount_in_words && (
+                                        <p className="text-xs text-gray-400 italic pt-1">{invoice.amount_in_words}</p>
+                                    )}
+                                </div>
+                            </div>
+                            );
+                        })()}
+                    </DetailSection>
+
+                    {/* Payment Info */}
+                    {(invoice.payment_method || invoice.payment_terms || invoice.payment_reference || invoice.late_penalty || invoice.bank_name || invoice.bank_iban) && (
+                        <DetailSection title="Payment">
+                            <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <DetailRow label="Method" value={invoice.payment_method} />
+                                <DetailRow label="Terms" value={invoice.payment_terms} />
+                                <DetailRow label="Reference" value={invoice.payment_reference} />
+                                <DetailRow label="Bank" value={invoice.bank_name} />
+                                <DetailRow label="IBAN" value={invoice.bank_iban} className="col-span-2" />
+                                {invoice.late_penalty && (
+                                    <DetailRow label="Late Penalty" value={invoice.late_penalty} className="col-span-3" />
+                                )}
+                            </div>
+                        </DetailSection>
+                    )}
+
+                    {/* Anomaly Flags */}
+                    {hasAnomalies && (
+                        <DetailSection title="Anomaly Flags">
+                            <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 flex flex-wrap gap-2">
+                                <AnomalyBadge active={invoice.is_duplicate} label="Duplicate" color="bg-amber-100 text-amber-700 ring-1 ring-amber-200" />
+                                <AnomalyBadge active={invoice.amount_anomaly} label="Amount Mismatch" color="bg-red-100 text-red-700 ring-1 ring-red-200" />
+                                <AnomalyBadge active={invoice.vat_mismatch} label="VAT Mismatch" color="bg-orange-100 text-orange-700 ring-1 ring-orange-200" />
+                                <AnomalyBadge active={invoice.date_anomaly} label="Date Anomaly" color="bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200" />
+                                <AnomalyBadge active={invoice.new_supplier} label="New Supplier" color="bg-blue-100 text-blue-700 ring-1 ring-blue-200" />
+                            </div>
+                        </DetailSection>
+                    )}
+
+                    {/* File Info */}
+                    <DetailSection title="File Information">
+                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <DetailRow label="Filename" value={invoice.original_filename} className="col-span-2" />
+                            <DetailRow label="Type" value={invoice.file_type?.toUpperCase()} />
+                            <DetailRow label="Size" value={formatSize(invoice.file_size)} />
+                            <DetailRow label="MIME" value={invoice.mime_type} />
+                            <DetailRow label="Uploaded By" value={invoice.uploaded_by?.name ?? invoice.uploaded_by} />
+                            <DetailRow label="Uploaded At" value={formatDate(invoice.created_at)} className="col-span-2" />
+                        </div>
+                    </DetailSection>
+                </div>
+            </div>
+        </>
+    );
+}
+
+
 export default function Index() {
     const { invoices, categories, filters } = usePage().props;
 
-    const [search, setSearch]         = useState(filters.search ?? '');
-    const [status, setStatus]         = useState(filters.status ?? '');
+    const [search, setSearch] = useState(filters.search ?? '');
+    const [status, setStatus] = useState(filters.status ?? '');
     const [categoryId, setCategoryId] = useState(filters.category_id ?? '');
-    const [dateFrom, setDateFrom]     = useState(filters.date_from ? new Date(filters.date_from) : null);
-    const [dateTo, setDateTo]         = useState(filters.date_to ? new Date(filters.date_to) : null);
-    const [selected, setSelected]         = useState([]);
+    const [dateFrom, setDateFrom] = useState(filters.date_from ? new Date(filters.date_from) : null);
+    const [dateTo, setDateTo] = useState(filters.date_to ? new Date(filters.date_to) : null);
+    const [selected, setSelected] = useState([]);
     const [liveStatuses, setLiveStatuses] = useState({}); // { [id]: { status, error_message } }
-    const [loadingIds, setLoadingIds]     = useState({}); // { [id]: true } while request in-flight
+    const [loadingIds, setLoadingIds] = useState({}); // { [id]: true } while request in-flight
+    const [detailedInvoice, setDetailedInvoice] = useState(null);
+    const [loadingDetailsId, setLoadingDetailsId] = useState(null);
     const pollingRef = useRef(null);
 
     // Poll every 4s while any invoice on this page is still processing
@@ -81,7 +339,7 @@ export default function Index() {
         return () => clearInterval(pollingRef.current);
     }, [invoices.data, liveStatuses]);
 
-    const allIds      = invoices.data.map(i => i.id);
+    const allIds = invoices.data.map(i => i.id);
     const allSelected = allIds.length > 0 && allIds.every(id => selected.includes(id));
     const someSelected = selected.length > 0;
 
@@ -90,11 +348,11 @@ export default function Index() {
 
     const applyFilters = useCallback((overrides = {}) => {
         const params = {
-            search:      overrides.search      ?? search,
-            status:      overrides.status      ?? status,
+            search: overrides.search ?? search,
+            status: overrides.status ?? status,
             category_id: overrides.category_id ?? categoryId,
-            date_from:   dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '',
-            date_to:     dateTo   ? format(dateTo,   'yyyy-MM-dd') : '',
+            date_from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : '',
+            date_to: dateTo ? format(dateTo, 'yyyy-MM-dd') : '',
         };
         // Remove empty params
         Object.keys(params).forEach(k => !params[k] && delete params[k]);
@@ -184,6 +442,19 @@ export default function Index() {
             preserveScroll: true,
             onFinish: () => setLoadingIds(p => { const n = { ...p }; delete n[inv.id]; return n; }),
         });
+    };
+
+    const handleShowDetails = async (inv) => {
+        setLoadingDetailsId(inv.id);
+        try {
+            const { data } = await axios.get(route('invoices.show', inv.id));
+            setDetailedInvoice(data);
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Failed to load invoice details', 'error');
+        } finally {
+            setLoadingDetailsId(null);
+        }
     };
 
     const clearFilters = () => {
@@ -442,12 +713,27 @@ export default function Index() {
                                                     const currentStatus = liveStatuses[inv.id]?.status ?? inv.status;
 
                                                     const isLoading = loadingIds[inv.id];
+                                                    const isLoadingDetails = loadingDetailsId === inv.id;
 
-                                                    if (currentStatus === 'processing' || isLoading) {
+                                                    if (currentStatus === 'processing' || isLoading || isLoadingDetails) {
                                                         return (
                                                             <span className="p-1.5 text-blue-400">
                                                                 <Loader2 className="w-5 h-5 animate-spin" />
                                                             </span>
+                                                        );
+                                                    }
+                                                    if (currentStatus === 'processed') {
+                                                        return (
+                                                            <button
+                                                                onClick={() => handleShowDetails(inv)}
+                                                                className="p-1.5 rounded-md text-gray-400 hover:text-green-600 hover:bg-green-50 transition"
+                                                                title="View Details"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                </svg>
+                                                            </button>
                                                         );
                                                     }
                                                     if (currentStatus === 'pending') {
@@ -504,13 +790,12 @@ export default function Index() {
                                         key={i}
                                         href={link.url ?? '#'}
                                         preserveState
-                                        className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                                            link.active
-                                                ? 'bg-indigo-600 text-white'
-                                                : link.url
-                                                    ? 'text-gray-600 hover:bg-gray-100'
-                                                    : 'text-gray-300 cursor-not-allowed'
-                                        }`}
+                                        className={`px-3 py-1 rounded-md text-xs font-medium transition ${link.active
+                                            ? 'bg-indigo-600 text-white'
+                                            : link.url
+                                                ? 'text-gray-600 hover:bg-gray-100'
+                                                : 'text-gray-300 cursor-not-allowed'
+                                            }`}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                     />
                                 ))}
@@ -519,6 +804,8 @@ export default function Index() {
                     )}
                 </div>
             </div>
+
+            <InvoiceDetailPanel invoice={detailedInvoice} onClose={() => setDetailedInvoice(null)} />
         </AppLayout>
     );
 }
