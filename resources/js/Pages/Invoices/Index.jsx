@@ -28,6 +28,13 @@ const STATUS_BADGE = {
     error: 'bg-red-50 text-red-700 ring-red-200',
 };
 
+function decodeHtml(str) {
+    if (!str || typeof str !== 'string') return str;
+    const txt = document.createElement('textarea');
+    txt.innerHTML = str;
+    return txt.value;
+}
+
 function formatSize(bytes) {
     if (!bytes) return '—';
     if (bytes < 1024) return bytes + ' B';
@@ -49,7 +56,7 @@ function DetailRow({ label, value, className = '' }) {
     return (
         <div className={className}>
             <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-            <p className="text-sm font-medium text-gray-900">{value || '—'}</p>
+            <p className="text-sm font-medium text-gray-900">{decodeHtml(value) || '—'}</p>
         </div>
     );
 }
@@ -90,14 +97,14 @@ function InvoiceDetailPanel({ invoice, onClose }) {
                         )}
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900">
-                                {invoice.number ?? <span className="italic text-gray-400">N/A</span>}
+                                {decodeHtml(invoice.number) ?? <span className="italic text-gray-400">N/A</span>}
                             </h2>
-                            <p className="text-sm text-gray-500">{invoice.supplier_name ?? '—'}</p>
+                            <p className="text-sm text-gray-500">{decodeHtml(invoice.supplier_name) ?? '—'}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${STATUS_BADGE['processed']}`}>
-                            processed
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${STATUS_BADGE[invoice.status] ?? 'bg-gray-50 text-gray-600 ring-gray-200'}`}>
+                            {invoice.status}
                         </span>
                         <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -155,52 +162,58 @@ function InvoiceDetailPanel({ invoice, onClose }) {
                     {/* Line Items */}
                     <DetailSection title="Line Items">
                         <div className="border border-gray-100 rounded-lg overflow-hidden">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50/50">
-                                    <tr>
-                                        <th className="px-4 py-2 font-medium text-gray-500">#</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500">Description</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">Qty</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">Unit Price</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">Disc.</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">HT</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">TVA %</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">TVA</th>
-                                        <th className="px-4 py-2 font-medium text-gray-500 text-right">TTC</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {invoice.items && invoice.items.length > 0 ? invoice.items.map((item, idx) => {
-                                        const vatAmount = item.vat_amount != null
-                                            ? Number(item.vat_amount)
-                                            : Math.round(Number(item.amount_ht) * Number(item.vat_rate) / 100 * 100) / 100;
-                                        return (
-                                        <tr key={item.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-gray-400 text-xs">{idx + 1}</td>
-                                            <td className="px-4 py-3 text-gray-800">
-                                                <div>{item.description}</div>
-                                                {item.sub_description && <div className="text-xs text-gray-400 mt-0.5">{item.sub_description}</div>}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">
-                                                {Number(item.quantity) !== 0 ? Number(item.quantity) : ''} {item.unit !== 'piece' && item.unit !== 'other' && item.unit !== null ? item.unit : ''}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatAmount(item.unit_price, invoice.currency)}</td>
-                                            <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
-                                                {Number(item.discount_rate) > 0 ? `${Number(item.discount_rate)}%` : ''}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatAmount(item.amount_ht, invoice.currency)}</td>
-                                            <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">
-                                                {Number(item.vat_rate) > 0 ? `${Number(item.vat_rate)}%` : '—'}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-gray-600 whitespace-nowrap">{formatAmount(vatAmount, invoice.currency)}</td>
-                                            <td className="px-4 py-3 text-right text-gray-800 font-medium whitespace-nowrap">{formatAmount(item.amount_ttc, invoice.currency)}</td>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm text-left">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">#</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center">Description</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">Qté</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">P.U. HT</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">Rem.</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">HT</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">TVA %</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">TVA</th>
+                                            <th className="px-3 py-2 font-medium text-gray-500 text-xs text-center whitespace-nowrap">TTC</th>
                                         </tr>
-                                        );
-                                    }) : (
-                                        <tr><td colSpan="9" className="px-4 py-4 text-center text-gray-400">No items found.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {invoice.items && invoice.items.length > 0 ? invoice.items.map((item, idx) => {
+                                            const vatAmount = item.vat_amount != null
+                                                ? Number(item.vat_amount)
+                                                : Math.round(Number(item.amount_ht) * Number(item.vat_rate) / 100 * 100) / 100;
+                                            const cur = invoice.currency ?? 'MAD';
+                                            return (
+                                                <tr key={item.id} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-2.5 text-center text-gray-400 text-xs">{idx + 1}</td>
+                                                    <td className="px-3 py-2.5 text-gray-800 max-w-[180px]">
+                                                        <div className="truncate">{decodeHtml(item.description)}</div>
+                                                        {item.sub_description && <div className="text-xs text-gray-400 mt-0.5 truncate">{decodeHtml(item.sub_description)}</div>}
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center text-gray-600 text-xs whitespace-nowrap">
+                                                        {Number(item.quantity) !== 0 ? Number(item.quantity) : ''}{item.unit && item.unit !== 'piece' && item.unit !== 'other' ? ` ${item.unit}` : ''}
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center text-gray-600 text-xs whitespace-nowrap">{formatAmount(item.unit_price, cur)}</td>
+                                                    <td className="px-3 py-2.5 text-center text-gray-500 text-xs whitespace-nowrap">
+                                                        {Number(item.discount_rate) > 0 ? `${Number(item.discount_rate)}%` : '—'}
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center text-gray-600 text-xs whitespace-nowrap">{formatAmount(item.amount_ht, cur)}</td>
+                                                    <td className="px-3 py-2.5 text-center text-xs whitespace-nowrap">
+                                                        {Number(item.vat_rate) > 0
+                                                            ? <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-violet-50 text-violet-600 font-medium">{Number(item.vat_rate)}%</span>
+                                                            : <span className="text-gray-400">—</span>
+                                                        }
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center text-indigo-600 text-xs font-medium whitespace-nowrap">{formatAmount(vatAmount, cur)}</td>
+                                                    <td className="px-3 py-2.5 text-center text-gray-800 text-xs font-semibold whitespace-nowrap">{formatAmount(item.amount_ttc, cur)}</td>
+                                                </tr>
+                                            );
+                                        }) : (
+                                            <tr><td colSpan="9" className="px-4 py-6 text-center text-gray-400 text-sm">No items found.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </DetailSection>
 
@@ -213,38 +226,39 @@ function InvoiceDetailPanel({ invoice, onClose }) {
                                     : Math.round(Number(item.amount_ht) * Number(item.vat_rate) / 100 * 100) / 100;
                                 return sum + (vatAmount || 0);
                             }, 0);
+                            const cur = invoice.currency ?? 'MAD';
                             return (
-                            <div className="flex justify-end">
-                                <div className="w-72 space-y-2 bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                    <div className="flex justify-between text-sm text-gray-600">
-                                        <span>Sous-total HT</span>
-                                        <span>{formatAmount(invoice.subtotal_ht, invoice.currency)}</span>
-                                    </div>
-                                    {Number(invoice.discount_rate) > 0 && (
-                                        <div className="flex justify-between text-sm text-red-600">
-                                            <span>Remise ({Number(invoice.discount_rate)}%)</span>
-                                            <span>- {formatAmount(invoice.discount_amount, invoice.currency)}</span>
-                                        </div>
-                                    )}
-                                    {invoice.taxable_amount != null && Number(invoice.subtotal_ht) !== Number(invoice.taxable_amount) && (
+                                <div className="flex justify-end">
+                                    <div className="w-72 space-y-2 bg-gray-50 rounded-lg p-4 border border-gray-100">
                                         <div className="flex justify-between text-sm text-gray-600">
-                                            <span>Montant imposable</span>
-                                            <span>{formatAmount(invoice.taxable_amount, invoice.currency)}</span>
+                                            <span>Sous-total HT</span>
+                                            <span>{formatAmount(invoice.subtotal_ht, cur)}</span>
                                         </div>
-                                    )}
-                                    <div className="flex justify-between text-sm text-gray-600">
-                                        <span>Total TVA</span>
-                                        <span className="font-medium text-indigo-600">{formatAmount(totalVat, invoice.currency)}</span>
+                                        {Number(invoice.discount_rate) > 0 && (
+                                            <div className="flex justify-between text-sm text-red-600">
+                                                <span>Remise ({Number(invoice.discount_rate)}%)</span>
+                                                <span>- {formatAmount(invoice.discount_amount, cur)}</span>
+                                            </div>
+                                        )}
+                                        {invoice.taxable_amount != null && Number(invoice.subtotal_ht) !== Number(invoice.taxable_amount) && (
+                                            <div className="flex justify-between text-sm text-gray-600">
+                                                <span>Montant imposable</span>
+                                                <span>{formatAmount(invoice.taxable_amount, cur)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between text-sm text-gray-600">
+                                            <span>Total TVA</span>
+                                            <span className="font-medium text-indigo-600">{formatAmount(totalVat, cur)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-base font-semibold text-gray-900 border-t border-gray-200 pt-2 mt-2">
+                                            <span>Total TTC</span>
+                                            <span>{formatAmount(invoice.total_ttc, cur)}</span>
+                                        </div>
+                                        {invoice.amount_in_words && (
+                                            <p className="text-xs text-gray-400 italic pt-1">{invoice.amount_in_words}</p>
+                                        )}
                                     </div>
-                                    <div className="flex justify-between text-base font-semibold text-gray-900 border-t border-gray-200 pt-2 mt-2">
-                                        <span>Total TTC</span>
-                                        <span>{formatAmount(invoice.total_ttc, invoice.currency)}</span>
-                                    </div>
-                                    {invoice.amount_in_words && (
-                                        <p className="text-xs text-gray-400 italic pt-1">{invoice.amount_in_words}</p>
-                                    )}
                                 </div>
-                            </div>
                             );
                         })()}
                     </DetailSection>
@@ -573,6 +587,19 @@ export default function Index() {
                                 </svg>
                                 Apply Filters
                             </button>
+                            <a
+                                href={route('invoices.export', {
+                                    search: search || undefined,
+                                    status: status || undefined,
+                                    category_id: categoryId || undefined,
+                                    date_from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
+                                    date_to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined
+                                })}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                Export
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -678,7 +705,7 @@ export default function Index() {
                                         </td>
 
                                         {/* Supplier */}
-                                        <td className="px-5 py-3 text-gray-600">{inv.supplier_name ?? '—'}</td>
+                                        <td className="px-5 py-3 text-gray-600">{decodeHtml(inv.supplier_name) ?? '—'}</td>
 
                                         {/* Date */}
                                         <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{formatDate(inv.created_at)}</td>

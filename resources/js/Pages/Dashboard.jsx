@@ -2,10 +2,14 @@ import CategoryIcon from '@/Components/CategoryIcon';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { format, parseISO } from 'date-fns';
-import { FileText, DollarSign, Clock, Tag, CalendarDays } from 'lucide-react';
+import { FileText, DollarSign, Clock, Tag, CalendarDays, Building2, Users, Receipt } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    PieChart, Pie, Cell, Legend
+} from 'recharts';
 
 // --- Date helpers ---
 function fmt(date) {
@@ -14,28 +18,34 @@ function fmt(date) {
 
 const PRESETS = [
     {
+        key: 'all_time',
+        label: 'All Time',
+        from: () => 'all',
+        to: () => 'all',
+    },
+    {
         key: 'this_month',
         label: 'This Month',
         from: () => { const d = new Date(); d.setDate(1); return fmt(d); },
-        to:   () => { const d = new Date(); d.setMonth(d.getMonth() + 1, 0); return fmt(d); },
+        to: () => { const d = new Date(); d.setMonth(d.getMonth() + 1, 0); return fmt(d); },
     },
     {
         key: 'last_month',
         label: 'Last Month',
         from: () => { const d = new Date(); d.setMonth(d.getMonth() - 1, 1); return fmt(d); },
-        to:   () => { const d = new Date(); d.setDate(0); return fmt(d); },
+        to: () => { const d = new Date(); d.setDate(0); return fmt(d); },
     },
     {
         key: 'last_3_months',
         label: 'Last 3 Months',
         from: () => { const d = new Date(); d.setMonth(d.getMonth() - 3, 1); return fmt(d); },
-        to:   () => fmt(new Date()),
+        to: () => fmt(new Date()),
     },
     {
         key: 'this_year',
         label: 'This Year',
         from: () => `${new Date().getFullYear()}-01-01`,
-        to:   () => `${new Date().getFullYear()}-12-31`,
+        to: () => `${new Date().getFullYear()}-12-31`,
     },
 ];
 
@@ -48,11 +58,13 @@ function detectPreset(dateFrom, dateTo) {
 
 function DateRangeFilter({ dateFrom, dateTo }) {
     const activePreset = detectPreset(dateFrom, dateTo);
-    const [range, setRange] = useState([parseISO(dateFrom), parseISO(dateTo)]);
+    const initialStart = dateFrom === 'all' ? null : parseISO(dateFrom);
+    const initialEnd = dateTo === 'all' ? null : parseISO(dateTo);
+    const [range, setRange] = useState([initialStart, initialEnd]);
     const [startDate, endDate] = range;
 
     useEffect(() => {
-        setRange([parseISO(dateFrom), parseISO(dateTo)]);
+        setRange([dateFrom === 'all' ? null : parseISO(dateFrom), dateTo === 'all' ? null : parseISO(dateTo)]);
     }, [dateFrom, dateTo]);
 
     function applyPreset(preset) {
@@ -73,7 +85,7 @@ function DateRangeFilter({ dateFrom, dateTo }) {
 
     const rangeLabel = startDate && endDate
         ? `${format(startDate, 'dd MMM yyyy')} → ${format(endDate, 'dd MMM yyyy')}`
-        : 'Select range';
+        : (activePreset === 'all_time' ? 'All Time' : 'Select range');
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -81,11 +93,10 @@ function DateRangeFilter({ dateFrom, dateTo }) {
                 <button
                     key={p.key}
                     onClick={() => applyPreset(p)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        activePreset === p.key
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${activePreset === p.key
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
                 >
                     {p.label}
                 </button>
@@ -98,11 +109,10 @@ function DateRangeFilter({ dateFrom, dateTo }) {
                 dateFormat="dd MMM yyyy"
                 popperPlacement="bottom-end"
                 customInput={
-                    <button className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                        activePreset === 'custom'
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}>
+                    <button className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${activePreset === 'custom'
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}>
                         <CalendarDays className="w-3.5 h-3.5" />
                         {rangeLabel}
                     </button>
@@ -113,17 +123,17 @@ function DateRangeFilter({ dateFrom, dateTo }) {
 }
 
 // --- Stats ---
-const buildStats = (totalInvoices, totalRevenue, pendingInvoices) => [
+const buildStats = (totalInvoices, totalRevenue, totalRevenueCurrency, pendingInvoices, suppliersCount, customersCount, categories) => [
     {
         label: 'Total Invoices',
         value: totalInvoices.toString(),
-        change: '+0%',
+        change: 'In selected period',
         icon: <FileText className="w-6 h-6 text-indigo-600" />,
         bg: 'bg-indigo-100',
     },
     {
-        label: 'Revenue',
-        value: new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2 }).format(totalRevenue),
+        label: 'Revenue (TTC)',
+        value: new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2 }).format(totalRevenue) + ' ' + totalRevenueCurrency,
         change: 'All processed invoices',
         icon: <DollarSign className="w-6 h-6 text-green-600" />,
         bg: 'bg-green-100',
@@ -137,10 +147,24 @@ const buildStats = (totalInvoices, totalRevenue, pendingInvoices) => [
     },
     {
         label: 'Active Categories',
-        value: '0',
-        change: '',
+        value: categories.length.toString(),
+        change: 'Invoice categories',
         icon: <Tag className="w-6 h-6 text-purple-600" />,
         bg: 'bg-purple-100',
+    },
+    {
+        label: 'Suppliers',
+        value: suppliersCount.toString(),
+        change: 'Registered suppliers',
+        icon: <Building2 className="w-6 h-6 text-sky-600" />,
+        bg: 'bg-sky-100',
+    },
+    {
+        label: 'Customers',
+        value: customersCount.toString(),
+        change: 'Registered customers',
+        icon: <Users className="w-6 h-6 text-orange-600" />,
+        bg: 'bg-orange-100',
     },
 ];
 
@@ -162,9 +186,9 @@ function formatDate(date) {
 }
 
 export default function Dashboard() {
-    const { auth, categories = [], totalInvoices = 0, totalRevenue = 0, pendingInvoices = 0, recentInvoices = [], dateFrom, dateTo } = usePage().props;
+    const { auth, categories = [], totalInvoices = 0, totalRevenue = 0, totalRevenueCurrency = 'MAD', pendingInvoices = 0, recentInvoices = [], suppliersCount = 0, customersCount = 0, monthlyRevenue = [], topSuppliers = [], topCustomers = [], spendByCategory = [], anomalyFlags = [], dateFrom, dateTo } = usePage().props;
     const user = auth.user;
-    const stats = buildStats(totalInvoices, totalRevenue, pendingInvoices);
+    const stats = buildStats(totalInvoices, totalRevenue, totalRevenueCurrency, pendingInvoices, suppliersCount, customersCount, categories);
 
     return (
         <AppLayout
@@ -186,18 +210,29 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {stats.map((stat) => (
-                    <div key={stat.label} className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
-                        <div className={`p-3 rounded-full ${stat.bg} shrink-0`}>
-                            {stat.icon}
+                {stats.map((stat) => {
+                    const inner = (
+                        <>
+                            <div className={`p-3 rounded-full ${stat.bg} shrink-0`}>
+                                {stat.icon}
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+                                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                                {stat.change && <p className="text-xs text-gray-400 mt-0.5">{stat.change}</p>}
+                            </div>
+                        </>
+                    );
+                    return stat.href ? (
+                        <Link key={stat.label} href={stat.href} className="bg-white rounded-lg shadow p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
+                            {inner}
+                        </Link>
+                    ) : (
+                        <div key={stat.label} className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+                            {inner}
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                            {stat.change && <p className="text-xs text-gray-400 mt-0.5">{stat.change}</p>}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Quick Actions */}
@@ -222,6 +257,141 @@ export default function Dashboard() {
                         </svg>
                         Add Invoice Category
                     </Link>
+                </div>
+            </div>
+
+            {/* Monthly Revenue Chart */}
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-900">Monthly Revenue</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Selected period · {totalRevenueCurrency}</p>
+                    </div>
+                    <span className="text-xs font-medium text-gray-500">
+                        {monthlyRevenue.filter(m => m.total > 0).length} active months
+                    </span>
+                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={monthlyRevenue} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="30%">
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                        <XAxis
+                            dataKey="label"
+                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                            axisLine={false}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                            width={40}
+                        />
+                        <Tooltip
+                            cursor={{ fill: '#f5f3ff' }}
+                            content={({ active, payload, label }) => {
+                                if (!active || !payload?.length) return null;
+                                return (
+                                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-sm">
+                                        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+                                        <p className="text-indigo-600 font-bold">
+                                            {new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2 }).format(payload[0].value)} {totalRevenueCurrency}
+                                        </p>
+                                    </div>
+                                );
+                            }}
+                        />
+                        <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* Analytics Row: Top Suppliers, Top Customers, Anomaly Flags */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+                {/* Top 5 Suppliers */}
+                <div className="bg-white rounded-lg shadow p-6 flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Top 5 Suppliers</h2>
+                        <Link href="/suppliers" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                            View All &rarr;
+                        </Link>
+                    </div>
+                    <div className="flex-1 space-y-4 mt-2">
+                        {topSuppliers.length > 0 ? topSuppliers.map((supplier, index) => {
+                            const maxVal = topSuppliers[0].total;
+                            const pct = maxVal > 0 ? (supplier.total / maxVal) * 100 : 0;
+                            return (
+                                <div key={index}>
+                                    <div className="flex justify-between text-sm mb-1.5">
+                                        <span className="font-medium text-gray-700 truncate pr-2" title={supplier.name}>{supplier.name}</span>
+                                        <span className="text-gray-900 font-semibold whitespace-nowrap">{formatAmount(supplier.total, totalRevenueCurrency)}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                        <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <div className="flex items-center justify-center h-full text-sm text-gray-400">No data available</div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Top 5 Customers */}
+                <div className="bg-white rounded-lg shadow p-6 flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Top 5 Customers</h2>
+                        <Link href="/customers" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                            View All &rarr;
+                        </Link>
+                    </div>
+                    <div className="flex-1 space-y-4 mt-2">
+                        {topCustomers.length > 0 ? topCustomers.map((customer, index) => {
+                            const maxVal = topCustomers[0].total;
+                            const pct = maxVal > 0 ? (customer.total / maxVal) * 100 : 0;
+                            return (
+                                <div key={index}>
+                                    <div className="flex justify-between text-sm mb-1.5">
+                                        <span className="font-medium text-gray-700 truncate pr-2" title={customer.name}>{customer.name}</span>
+                                        <span className="text-gray-900 font-semibold whitespace-nowrap">{formatAmount(customer.total, totalRevenueCurrency)}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                        <div className="bg-sky-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <div className="flex items-center justify-center h-full text-sm text-gray-400">No data available</div>
+                        )}
+                    </div>
+                </div>
+                {/* Anomaly Flags */}
+                <div className="bg-white rounded-lg shadow p-6 flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">Anomaly Flags</h2>
+                        <Link href="/invoices" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                            View All &rarr;
+                        </Link>
+                    </div>
+                    <div className="flex-1 space-y-4 mt-2">
+                        {anomalyFlags.length > 0 ? anomalyFlags.map((flag, index) => {
+                            const maxVal = anomalyFlags[0].count;
+                            const pct = maxVal > 0 ? (flag.count / maxVal) * 100 : 0;
+                            return (
+                                <div key={index}>
+                                    <div className="flex justify-between text-sm mb-1.5">
+                                        <span className="font-medium text-gray-700 truncate pr-2" title={flag.label}>{flag.label}</span>
+                                        <span className="text-gray-900 font-semibold whitespace-nowrap">{flag.count}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                        <div className="bg-red-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
+                                    </div>
+                                </div>
+                            );
+                        }) : (
+                            <div className="flex items-center justify-center h-full text-sm text-gray-400">No data available</div>
+                        )}
+                    </div>
                 </div>
             </div>
 

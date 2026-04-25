@@ -102,11 +102,11 @@ class AnomalyDetectorService
     private function checkDuplicate(Invoice $invoice): bool
     {
         // Duplicate invoice number from the same supplier
-        if ($invoice->number && $invoice->supplier_name) {
+        if ($invoice->number && $invoice->supplier_id) {
             $exists = Invoice::where('tenant_id', $invoice->tenant_id)
                 ->where('id', '!=', $invoice->id)
                 ->where('number', $invoice->number)
-                ->where('supplier_name', $invoice->supplier_name)
+                ->where('supplier_id', $invoice->supplier_id)
                 ->exists();
 
             if ($exists) {
@@ -135,14 +135,14 @@ class AnomalyDetectorService
      */
     private function checkNewSupplier(Invoice $invoice): bool
     {
-        if (! $invoice->supplier_name) {
+        if (! $invoice->supplier_id) {
             return false;
         }
 
         return ! Invoice::where('tenant_id', $invoice->tenant_id)
             ->where('id', '!=', $invoice->id)
             ->where('status', 'processed')
-            ->whereRaw('LOWER(supplier_name) = LOWER(?)', [$invoice->supplier_name])
+            ->where('supplier_id', $invoice->supplier_id)
             ->exists();
     }
 }

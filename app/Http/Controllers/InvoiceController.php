@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Jobs\ExtractInvoiceJob;
 use App\Models\Invoice;
 use App\Models\InvoiceCategory;
+use App\Exports\InvoicesExport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
@@ -124,5 +126,12 @@ class InvoiceController extends Controller
         }
 
         return back()->with('success', 'Extraction started for ' . $invoices->count() . ' invoice(s).');
+    }
+
+    public function export(Request $request)
+    {
+        $filename = 'invoices_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new InvoicesExport($request), $filename);
     }
 }

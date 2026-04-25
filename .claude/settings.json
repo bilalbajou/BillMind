@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(composer require *)",
+      "mcp__mysql-wamp__mysql_query"
+    ]
+  }
+}

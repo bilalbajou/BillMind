@@ -120,15 +120,20 @@ class OpenAiInvoiceExtractorService
         }
 
         return <<<PROMPT
-You are an invoice data extraction assistant. Extract all available fields from the invoice OCR text the user provides and return a single JSON object.
+You are a highly capable financial document data extraction assistant. The OCR text provided may belong to an Invoice, Purchase Order, Billing Statement, Receipt, or Quote in any language.
+Extract all available fields from the text and return a single JSON object.
 
 Rules:
+- Document Type Agnosticism: The document might not be a standard invoice.
+   * Map "Purchase Order #", "Statement No", "Receipt No", etc., to `invoice.number`.
+   * For Purchase Orders or Statements, map the primary vendor/seller to `supplier_name`, and the buyer/recipient to `customer_name`.
+   * Treat "Debit" or similar charge columns as line item amounts (`amount_ht` or `amount_ttc`).
 - Dates must be in YYYY-MM-DD format. Convert any format (DD/MM/YYYY, etc.).
 - All monetary amounts must be plain decimal numbers (no symbols, no thousand separators). Example: 19400.00
 - discount_rate and vat_rate must be a percentage as a decimal number (e.g. 20 for 20%, 3.5 for 3.5%).
-- payment_method must be one of: bank_transfer, check, cash, card, bill_of_exchange, other.
+- payment_method must be one of: bank_transfer, check, cash, card, bill_of_exchange, other. Map "Credit Card" to "card".
 - unit (for line items) must be one of: piece, hour, kg, flat_fee, km, day, month, other.
-- Use null for any field not found in the text.
+- Use null for any field not found in the text. Do NOT invent data.
 - currency should be ISO 4217 code (MAD, EUR, USD, etc.). Default to MAD if not specified.{$categorySection}
 
 Return ONLY this JSON structure, no explanation, no markdown fences:

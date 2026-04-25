@@ -76,7 +76,7 @@ function AnomalyDetail({ type, invoice }) {
 
     if (type.key === 'amount_anomaly') {
         const expected = ((+invoice.subtotal_ht || 0) + (+invoice.vat_amount || 0)).toFixed(2);
-        const actual   = (+invoice.total_ttc || 0).toFixed(2);
+        const actual = (+invoice.total_ttc || 0).toFixed(2);
         return (
             <div className="space-y-2 text-sm">
                 <p className="text-gray-600">
@@ -115,10 +115,10 @@ function AnomalyDetail({ type, invoice }) {
     }
 
     if (type.key === 'vat_mismatch') {
-        const rate     = +invoice.vat_rate || 0;
-        const ht       = +invoice.subtotal_ht || 0;
+        const rate = +invoice.vat_rate || 0;
+        const ht = +invoice.subtotal_ht || 0;
         const expected = (Math.round(ht * rate / 100 * 100) / 100).toFixed(2);
-        const actual   = (+invoice.vat_amount || 0).toFixed(2);
+        const actual = (+invoice.vat_amount || 0).toFixed(2);
         return (
             <div className="space-y-2 text-sm">
                 <p className="text-gray-600">
@@ -480,13 +480,12 @@ export default function Anomalies({ invoices }) {
                                     key={i}
                                     href={link.url ?? '#'}
                                     preserveScroll
-                                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                                        link.active
-                                            ? 'bg-indigo-600 text-white border-indigo-600'
-                                            : link.url
-                                                ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                                                : 'border-gray-100 text-gray-300 cursor-not-allowed'
-                                    }`}
+                                    className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${link.active
+                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                        : link.url
+                                            ? 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                            : 'border-gray-100 text-gray-300 cursor-not-allowed'
+                                        }`}
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             ))}

@@ -102,6 +102,13 @@ const navSections = [
         ],
     },
     {
+        label: 'Contacts',
+        items: [
+            { label: 'Customers', href: '/customers', routeName: 'customers.index', icon: Icon.users },
+            { label: 'Suppliers', href: '/suppliers', routeName: 'suppliers.index', icon: Icon.supplier },
+        ],
+    },
+    {
         label: 'Analytics',
         items: [
             { label: 'Overview', href: '/analytics', routeName: 'analytics.index', icon: Icon.chart },
@@ -111,9 +118,10 @@ const navSections = [
         label: 'Administration',
         adminOnly: true,
         items: [
+            { label: 'Dashboard', href: '/admin/dashboard', routeName: 'admin.dashboard', icon: Icon.chart },
             { label: 'Users', href: '/admin/users', routeName: 'admin.users', icon: Icon.users },
             { label: 'Invitations', href: '/admin/invitations', routeName: 'admin.invitations', icon: Icon.invite },
-            { label: 'Audit Log', href: '/admin/audit', routeName: 'admin.audit', icon: Icon.audit },
+            { label: 'Audit Log', href: '/settings/audit-log', routeName: 'settings.audit-log', icon: Icon.audit },
             { label: 'AI Model', href: '/admin/ai-model', routeName: 'admin.ai', icon: Icon.ai },
         ],
     },
@@ -297,6 +305,11 @@ export default function AppLayout({ header, children }) {
                             {initials}
                         </div>
                         <span>{user.name}</span>
+                        {isAdmin && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 uppercase tracking-wide leading-none">
+                                Admin
+                            </span>
+                        )}
                         <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>

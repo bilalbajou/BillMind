@@ -51,6 +51,11 @@ class ExtractInvoiceJob implements ShouldQueue
 
             $extracted = $extractor->extractFromText($ocrResult['ocr_text'], $categories);
 
+            // Fallback: if the AI didn't assign a valid category, use "Miscellaneous" (id=22)
+            if (empty($extracted['fields']['category_id'])) {
+                $extracted['fields']['category_id'] = InvoiceCategory::where('slug', 'miscellaneous')->value('id') ?? 22;
+            }
+
             // Step 3 — Save AI-extracted invoice fields via normal update() so $fillable
             // acts as a hard barrier: any field the AI returns that is not in $fillable
             // (status, error_message, tenant_id, uploaded_by, anomaly flags, etc.) is
@@ -59,6 +64,67 @@ class ExtractInvoiceJob implements ShouldQueue
                 ...$extracted['fields'],
                 'ocr_text' => $ocrResult['ocr_text'],
             ]);
+
+            // Step 3b - Auto-create or Update Supplier & Client
+            $supplierId = null;
+            if (!empty($extracted['fields']['supplier_name'])) {
+                $q = \App\Models\Supplier::where('tenant_id', $this->invoice->tenant_id);
+                if (!empty($extracted['fields']['supplier_ice'])) {
+                    $q->where('ice', $extracted['fields']['supplier_ice']);
+                } else {
+                    $q->whereRaw('LOWER(name) = LOWER(?)', [$extracted['fields']['supplier_name']]);
+                }
+                
+                $supplier = $q->first();
+                $sData = [];
+                foreach(['name', 'address', 'ice', 'if', 'rc', 'phone', 'email', 'rib'] as $f) {
+                    if (!empty($extracted['fields']["supplier_{$f}"])) {
+                        $sData[$f] = $extracted['fields']["supplier_{$f}"];
+                    }
+                }
+                
+                if (!$supplier && !empty($sData['name'])) {
+                    $sData['tenant_id'] = $this->invoice->tenant_id;
+                    $supplier = \App\Models\Supplier::create($sData);
+                }
+                
+                if ($supplier) {
+                    $supplierId = $supplier->id;
+                }
+            }
+
+            $customerId = null;
+            if (!empty($extracted['fields']['customer_name'])) {
+                $q = \App\Models\Customer::where('tenant_id', $this->invoice->tenant_id);
+                if (!empty($extracted['fields']['customer_ice'])) {
+                    $q->where('ice', $extracted['fields']['customer_ice']);
+                } else {
+                    $q->whereRaw('LOWER(name) = LOWER(?)', [$extracted['fields']['customer_name']]);
+                }
+                
+                $customer = $q->first();
+                $cData = [];
+                foreach(['name', 'address', 'ice', 'if', 'rc', 'phone', 'email', 'rib'] as $f) {
+                    $k = "customer_{$f}";
+                    if (!empty($extracted['fields'][$k])) {
+                        $cData[$f] = $extracted['fields'][$k];
+                    }
+                }
+                
+                if (!$customer && !empty($cData['name'])) {
+                    $cData['tenant_id'] = $this->invoice->tenant_id;
+                    $customer = \App\Models\Customer::create($cData);
+                }
+                
+                if ($customer) {
+                    $customerId = $customer->id;
+                }
+            }
+
+            $this->invoice->forceFill([
+                'supplier_id' => $supplierId,
+                'customer_id' => $customerId,
+            ])->save();
 
             // Step 4 — Detect anomalies on the freshly saved data and persist flags.
             // forceFill() is used because anomaly flags are excluded from $fillable.
@@ -69,10 +135,15 @@ class ExtractInvoiceJob implements ShouldQueue
             // Step 5 — Mark as processed via forceFill() — not part of AI output.
             $this->invoice->forceFill(['status' => 'processed'])->save();
 
-            // Step 7 — Save line items
             if (!empty($extracted['items'])) {
                 $this->invoice->items()->delete();
                 foreach ($extracted['items'] as $item) {
+                    $item['unit_price'] = isset($item['unit_price']) ? (float)$item['unit_price'] : 0.0;
+                    $item['quantity'] = isset($item['quantity']) ? (float)$item['quantity'] : 1.0;
+                    $item['amount_ht'] = isset($item['amount_ht']) ? (float)$item['amount_ht'] : 0.0;
+                    $item['vat_rate'] = isset($item['vat_rate']) ? (float)$item['vat_rate'] : 0.0;
+                    $item['discount_rate'] = isset($item['discount_rate']) ? (float)$item['discount_rate'] : 0.0;
+                    $item['discount_amount'] = isset($item['discount_amount']) ? (float)$item['discount_amount'] : 0.0;
                     $this->invoice->items()->create($item);
                 }
             }
