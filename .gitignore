@@ -4,6 +4,9 @@
 .env.backup
 .env.production
 .mcp.json
+claude.md
+documentation.md
+qwen.md
 queue-worker.bat
 .phpactor.json
 .phpunit.result.cache
