@@ -108,12 +108,7 @@ const navSections = [
             { label: 'Suppliers', href: '/suppliers', routeName: 'suppliers.index', icon: Icon.supplier },
         ],
     },
-    {
-        label: 'Analytics',
-        items: [
-            { label: 'Overview', href: '/analytics', routeName: 'analytics.index', icon: Icon.chart },
-        ],
-    },
+
     {
         label: 'Administration',
         adminOnly: true,
@@ -131,7 +126,6 @@ const navSections = [
             { label: 'My Profile', href: '/profile', routeName: 'profile.edit', icon: Icon.profile },
             { label: 'Company', href: '/settings/company', routeName: 'settings.company', icon: Icon.company },
             { label: 'Categories', href: '/settings/categories', routeName: 'settings.categories', icon: Icon.categories },
-            { label: 'Subscription', href: '/settings/billing', routeName: 'settings.billing', icon: Icon.billing },
         ],
     },
 ];
@@ -220,7 +214,7 @@ export default function AppLayout({ header, children }) {
                 <div className="border-b border-gray-100">
                     <Link href="/dashboard" className="flex items-center gap-2">
                         <img
-                            src="/logo.png"d
+                            src="/logo.png"
                             className="h-20 w-auto"
                             alt="BillMind"
                             onError={(e) => { e.target.style.display = 'none'; }}
@@ -270,20 +264,7 @@ export default function AppLayout({ header, children }) {
                     })}
                 </nav>
 
-                {/* Footer: Plan card */}
-                <div className="p-4 border-t border-gray-100">
-                    <div className="p-3 bg-indigo-50 rounded-xl">
-                        <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-semibold text-indigo-900">Trial · 14 days left</span>
-                        </div>
-                        <div className="w-full bg-indigo-200 rounded-full h-1.5 mb-3">
-                            <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '8%' }} />
-                        </div>
-                        <button className="w-full text-center text-xs font-semibold text-white bg-indigo-600 rounded-lg px-3 py-2 hover:bg-indigo-700 transition-colors">
-                            Upgrade
-                        </button>
-                    </div>
-                </div>
+
             </aside>
 
             {/* Mobile overlay */}

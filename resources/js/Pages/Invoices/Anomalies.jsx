@@ -354,7 +354,7 @@ function DetailPanel({ invoice, onClose }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function Anomalies({ invoices }) {
-    const { data: rows, links, meta } = invoices;
+    const { data: rows, links, from, to, total } = invoices;
     const [selected, setSelected] = useState(null);
 
     const activeAnomalies = (invoice) =>
@@ -472,7 +472,7 @@ export default function Anomalies({ invoices }) {
                 {links && links.length > 3 && (
                     <div className="mt-4 flex items-center justify-between">
                         <p className="text-xs text-gray-500">
-                            Showing {meta.from}–{meta.to} of {meta.total} invoices
+                            Showing {from}–{to} of {total} invoices
                         </p>
                         <div className="flex gap-1">
                             {links.map((link, i) => (

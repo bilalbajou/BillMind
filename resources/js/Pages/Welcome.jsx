@@ -18,9 +18,6 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                         <a href="#how-it-works" className="text-[20px] font-medium text-[#3b475e] hover:text-gray-900 transition flex items-center">
                             How It Works
                         </a>
-                        <a href="#pricing" className="text-[20px] font-medium text-[#3b475e] hover:text-gray-900 transition flex items-center">
-                            Pricing
-                        </a>
                         <a href="#faq" className="text-[20px] font-medium text-[#3b475e] hover:text-gray-900 transition flex items-center">
                             FAQ
                         </a>
@@ -386,127 +383,6 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                     </div>
                 </section>
 
-                {/* Pricing Section */}
-                {/* Pricing Section */}
-                <section id="pricing" className="bg-[#f8fafc] py-24 sm:py-32 border-y border-gray-100 relative">
-                    <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply blur-[128px] opacity-40"></div>
-                    <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply blur-[128px] opacity-40"></div>
-
-                    <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
-                        <div className="mx-auto max-w-4xl lg:text-center mb-16">
-                            <h2 className="text-sm font-extrabold tracking-widest uppercase text-indigo-600 mb-4 tracking-[0.2em]">Pricing</h2>
-                            <p className="text-4xl font-extrabold tracking-tight text-[#0f172a] sm:text-5xl lg:text-5xl mb-6">
-                                Simple, Transparent Pricing
-                            </p>
-                            <p className="mx-auto max-w-2xl text-lg leading-8 text-gray-500 font-medium">
-                                Start free. Scale as you grow. No hidden fees.
-                            </p>
-                        </div>
-
-                        <div className="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-8 md:max-w-5xl md:grid-cols-2 lg:max-w-none lg:grid-cols-3 xl:gap-10">
-
-                            {/* Plan 1 — Starter */}
-                            <div className="flex flex-col justify-between rounded-[2.5rem] bg-white p-8 xl:p-10 ring-1 ring-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 transform hover:-translate-y-1">
-                                <div>
-                                    <div className="flex items-center justify-between gap-x-4 mb-2">
-                                        <h3 id="tier-starter" className="text-xl font-bold leading-8 text-gray-900">Starter</h3>
-                                    </div>
-                                    <p className="text-[15px] leading-6 text-gray-500 mt-2 h-12">Perfect for freelancers and small businesses.</p>
-                                    <p className="mt-6 flex items-baseline gap-x-1">
-                                        <span className="text-5xl font-extrabold tracking-tight text-gray-900">0</span>
-                                        <span className="text-sm font-bold leading-6 text-gray-400">MAD / month</span>
-                                    </p>
-                                    <a href={route('register')} aria-describedby="tier-starter" className="mt-8 block rounded-xl py-3.5 px-3 text-center bg-blue-50 text-[15px] font-bold text-blue-600 hover:bg-blue-100 transition-colors w-full ring-1 ring-inset ring-blue-100">
-                                        Get Started Free &rarr;
-                                    </a>
-                                    <div className="mt-10 mb-5 relative flex items-center">
-                                        <div className="flex-grow border-t border-gray-100"></div>
-                                        <span className="flex-shrink-0 mx-4 text-xs font-semibold tracking-wider text-gray-400 uppercase">Includes</span>
-                                        <div className="flex-grow border-t border-gray-100"></div>
-                                    </div>
-                                    <ul role="list" className="space-y-4 text-[15px] leading-6 text-gray-600">
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Up to 30 invoices / month</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>OCR + data extraction</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Basic dashboard</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>CSV export</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>1 user</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            {/* Plan 2 — Pro */}
-                            <div className="flex flex-col justify-between rounded-[2.5rem] bg-[#0f172a] p-8 xl:p-10 shadow-2xl lg:z-10 relative ring-1 ring-white/10 scale-100 lg:scale-105 transform transition-transform duration-300 hover:scale-[1.07] group overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply blur-[80px] opacity-40 pointer-events-none"></div>
-
-                                <div className="absolute top-0 transform translate-y-[-1px] left-1/2 -translate-x-1/2">
-                                    <div className="rounded-b-xl bg-gradient-to-r from-blue-500 to-indigo-500 px-5 py-1.5 text-xs font-bold uppercase tracking-widest text-white shadow-sm flex items-center gap-1.5">
-                                        <svg className="w-3.5 h-3.5 text-yellow-300" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                                        Most Popular
-                                    </div>
-                                </div>
-
-                                <div className="relative z-10">
-                                    <div className="flex items-center justify-between gap-x-4 mb-2 mt-4 lg:mt-2">
-                                        <h3 id="tier-pro" className="text-xl font-bold leading-8 text-white">Pro</h3>
-                                    </div>
-                                    <p className="text-[15px] leading-6 text-gray-400 mt-2 h-12">For growing businesses with active accounting needs.</p>
-                                    <p className="mt-6 flex items-baseline gap-x-1">
-                                        <span className="text-5xl font-extrabold tracking-tight text-white drop-shadow-md">299</span>
-                                        <span className="text-sm font-bold leading-6 text-gray-400">MAD / month</span>
-                                    </p>
-                                    <a href={route('register')} aria-describedby="tier-pro" className="mt-8 block rounded-xl py-3.5 px-3 text-center bg-blue-600 text-[15px] font-bold text-white shadow-lg shadow-blue-500/30 hover:bg-blue-500 hover:shadow-blue-500/50 transition-all w-full relative overflow-hidden group/btn">
-                                        <span className="relative z-10 flex items-center justify-center gap-2">Start 14-Day Free Trial &rarr;</span>
-                                        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[150%] skew-x-[-20deg] group-hover/btn:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-                                    </a>
-                                    <div className="mt-10 mb-5 relative flex items-center">
-                                        <div className="flex-grow border-t border-gray-700"></div>
-                                        <span className="flex-shrink-0 mx-4 text-xs font-semibold tracking-wider text-gray-400 uppercase">Includes Starter, plus</span>
-                                        <div className="flex-grow border-t border-gray-700"></div>
-                                    </div>
-                                    <ul role="list" className="space-y-4 text-[15px] leading-6 text-gray-300">
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Unlimited invoices</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>AI classification & anomalies</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Full analytics dashboard</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Excel & PDF export</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Automatic monthly reports</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-blue-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Up to 5 users</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            {/* Plan 3 — Business */}
-                            <div className="flex flex-col justify-between rounded-[2.5rem] bg-white p-8 xl:p-10 ring-1 ring-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 transform hover:-translate-y-1">
-                                <div>
-                                    <div className="flex items-center justify-between gap-x-4 mb-2">
-                                        <h3 id="tier-business" className="text-xl font-bold leading-8 text-gray-900">Business</h3>
-                                    </div>
-                                    <p className="text-[15px] leading-6 text-gray-500 mt-2 h-12">For finance teams that need full control and collaboration.</p>
-                                    <p className="mt-6 flex items-baseline gap-x-1">
-                                        <span className="text-5xl font-extrabold tracking-tight text-gray-900">799</span>
-                                        <span className="text-sm font-bold leading-6 text-gray-400">MAD / month</span>
-                                    </p>
-                                    <a href="mailto:sales@billmind.com" aria-describedby="tier-business" className="mt-8 block rounded-xl py-3.5 px-3 text-center bg-white border-2 border-gray-200 text-[15px] font-bold text-gray-900 hover:bg-gray-50 hover:border-gray-300 transition-colors w-full">
-                                        Contact Sales &rarr;
-                                    </a>
-                                    <div className="mt-10 mb-5 relative flex items-center">
-                                        <div className="flex-grow border-t border-gray-100"></div>
-                                        <span className="flex-shrink-0 mx-4 text-xs font-semibold tracking-wider text-gray-400 uppercase">Includes Pro, plus</span>
-                                        <div className="flex-grow border-t border-gray-100"></div>
-                                    </div>
-                                    <ul role="list" className="space-y-4 text-[15px] leading-6 text-gray-600">
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Unlimited users</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Role-based access</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Complete audit log</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Active learning (retraining)</li>
-                                        <li className="flex gap-x-4"><svg className="h-6 w-5 flex-none text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>Priority support</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 {/* FAQ Section */}
                 <section id="faq" className="bg-[#f8fafc] py-24 sm:py-32 border-b border-gray-100 relative z-10">
                     <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -572,15 +448,6 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                         None at all. BillMind is designed for accountants and finance teams, not developers. If you can upload a file and read a dashboard, you're ready.
                                     </dd>
                                 </div>
-                                {/* FAQ 7 */}
-                                <div className="pt-6 text-left">
-                                    <dt className="text-lg font-bold leading-7 text-gray-900">
-                                        Can I cancel at any time?
-                                    </dt>
-                                    <dd className="mt-2 text-base leading-7 text-gray-600">
-                                        Yes. There are no long-term commitments. You can cancel, upgrade, or downgrade your plan at any time from your account settings.
-                                    </dd>
-                                </div>
                             </dl>
                         </div>
                     </div>
@@ -617,7 +484,6 @@ export default function Welcome({ auth, laravelVersion, phpVersion }) {
                                         <ul role="list" className="mt-6 space-y-4">
                                             <li><a href="#features" className="text-sm leading-6 text-gray-600 hover:text-indigo-600 transition">Features</a></li>
                                             <li><a href="#how-it-works" className="text-sm leading-6 text-gray-600 hover:text-indigo-600 transition">How It Works</a></li>
-                                            <li><a href="#pricing" className="text-sm leading-6 text-gray-600 hover:text-indigo-600 transition">Pricing</a></li>
                                             <li><a href="#" className="text-sm leading-6 text-gray-600 hover:text-indigo-600 transition">Changelog</a></li>
                                         </ul>
                                     </div>

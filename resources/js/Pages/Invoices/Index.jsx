@@ -323,6 +323,7 @@ export default function Index() {
     const [loadingIds, setLoadingIds] = useState({}); // { [id]: true } while request in-flight
     const [detailedInvoice, setDetailedInvoice] = useState(null);
     const [loadingDetailsId, setLoadingDetailsId] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
     const pollingRef = useRef(null);
 
     // Poll every 4s while any invoice on this page is still processing
@@ -471,6 +472,49 @@ export default function Index() {
         }
     };
 
+    const handleExport = async () => {
+        if (isExporting) return;
+
+        setIsExporting(true);
+
+        try {
+            const params = {
+                search: search || undefined,
+                status: status || undefined,
+                category_id: categoryId || undefined,
+                date_from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
+                date_to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
+            };
+
+            Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+
+            const response = await axios.get(route('invoices.export'), {
+                params,
+                responseType: 'blob',
+            });
+
+            const disposition = response.headers['content-disposition'] ?? '';
+            const filenameMatch = disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+            const filename = filenameMatch
+                ? decodeURIComponent(filenameMatch[1].replace(/"/g, ''))
+                : `invoices_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Error', 'Failed to export invoices.', 'error');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const clearFilters = () => {
         setSearch(''); setStatus(''); setCategoryId(''); setDateFrom(null); setDateTo(null);
         router.get(route('invoices.index'), {}, { preserveState: true, replace: true });
@@ -587,20 +631,24 @@ export default function Index() {
                                 </svg>
                                 Apply Filters
                             </button>
-                            <a
-                                href={route('invoices.export', {
-                                    search: search || undefined,
-                                    status: status || undefined,
-                                    category_id: categoryId || undefined,
-                                    date_from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
-                                    date_to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined
-                                })}
-                                download
-                                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+                            <button
+                                type="button"
+                                onClick={handleExport}
+                                disabled={isExporting}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                Export
-                            </a>
+                                {isExporting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Exporting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                        Export
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
