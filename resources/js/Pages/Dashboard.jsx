@@ -2,8 +2,9 @@ import CategoryIcon from '@/Components/CategoryIcon';
 import AppLayout from '@/Layouts/AppLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { format, parseISO } from 'date-fns';
-import { FileText, DollarSign, Clock, Tag, CalendarDays, Building2, Users, Receipt } from 'lucide-react';
+import { FileText, DollarSign, Clock, Tag, CalendarDays, Building2, Users, Receipt, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import ChatSlideOver from '@/Components/ChatSlideOver';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import {
@@ -188,6 +189,7 @@ function formatDate(date) {
 export default function Dashboard() {
     const { auth, categories = [], totalInvoices = 0, totalRevenue = 0, totalRevenueCurrency = 'MAD', pendingInvoices = 0, recentInvoices = [], suppliersCount = 0, customersCount = 0, monthlyRevenue = [], topSuppliers = [], topCustomers = [], spendByCategory = [], anomalyFlags = [], dateFrom, dateTo } = usePage().props;
     const user = auth.user;
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const stats = buildStats(totalInvoices, totalRevenue, totalRevenueCurrency, pendingInvoices, suppliersCount, customersCount, categories);
 
     return (
@@ -257,6 +259,13 @@ export default function Dashboard() {
                         </svg>
                         Add Invoice Category
                     </Link>
+                    <button
+                        onClick={() => setIsChatOpen(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all shadow-sm hover:shadow"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        AI Assistant
+                    </button>
                 </div>
             </div>
 
@@ -525,6 +534,9 @@ export default function Dashboard() {
                     </table>
                 </div>
             </div>
+
+            {/* Chat SlideOver */}
+            <ChatSlideOver isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
         </AppLayout>
     );
 }

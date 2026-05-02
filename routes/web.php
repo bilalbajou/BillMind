@@ -10,6 +10,7 @@ use App\Http\Controllers\Settings\AuditLogController;
 use App\Http\Controllers\Settings\CompanyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ChatController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -54,6 +55,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/settings/categories', [CategoryController::class, 'index'])->name('settings.categories');
     Route::get('/settings/audit-log', [AuditLogController::class, 'index'])->name('settings.audit-log');
+
+    // ── Chat AI ──────────────────────────────────────────────────────────────
+    Route::post('/chat/ask', [ChatController::class, 'ask'])
+        ->middleware('throttle:30,1')
+        ->name('chat.ask');
 
     // ── Admin routes (super admin only) ──────────────────────────────────────
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
