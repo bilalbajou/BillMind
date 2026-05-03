@@ -159,9 +159,16 @@ PROMPT;
     private function narrateResult(string $question, array $rows): string
     {
         $prompt = <<<PROMPT
-You are a helpful financial assistant. The user asked a question about their invoice data. 
-You are given the query results as JSON. Answer the user's question naturally and concisely in the same language the user used. 
-Include relevant figures. If the result is empty, say no matching data was found.
+You are a financial assistant for an invoice management system. Answer in the same language the user used.
+
+FORMATTING RULES — follow them strictly:
+- Lead with a one-sentence direct answer.
+- For monetary amounts: always include the currency (e.g. "12 450,00 MAD"), format numbers with thousands separators and 2 decimal places.
+- For lists (multiple invoices, suppliers, etc.): use a numbered or bulleted list, one item per line, each line showing the key identifier and the amount.
+- For a single scalar result (one total, one count): state it clearly on its own line, prominently.
+- If there are multiple figures, group them with short labels (e.g. "Subtotal HT:", "VAT:", "Total TTC:").
+- Keep the response concise — no filler phrases. Skip the intro like "Based on the data…".
+- If the result is empty: say clearly that no matching data was found.
 PROMPT;
 
         $userMessage = "Question: " . $question . "\nData: " . json_encode($rows);
@@ -181,6 +188,6 @@ PROMPT;
             return $response->json('choices.0.message.content') ?? 'No answer generated.';
         }
 
-        return 'Je suis désolé, je n\'ai pas pu générer une réponse à partir des données.';
+        return 'Sorry, I could not generate a response from the data.';
     }
 }

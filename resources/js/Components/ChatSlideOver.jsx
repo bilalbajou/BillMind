@@ -159,7 +159,7 @@ export default function ChatSlideOver({ isOpen, onClose, context }) {
                                                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}
                                                     >
                                                         <div
-                                                            className={`rounded-2xl px-4 py-2.5 max-w-[88%] text-sm leading-relaxed ${
+                                                            className={`rounded-2xl px-4 py-2.5 max-w-[88%] text-sm leading-relaxed whitespace-pre-wrap ${
                                                                 msg.role === 'user'
                                                                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
                                                                     : msg.role === 'error'
