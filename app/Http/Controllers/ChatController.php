@@ -23,7 +23,9 @@ class ChatController extends Controller
     {
         $validated = $request->validate([
             'question' => 'required|string|max:500',
-            'context' => 'nullable|string|max:100',
+            // Allowlist: only known page identifiers are accepted.
+            // This is the first line of defence against prompt injection.
+            'context'  => ['nullable', 'string', 'in:dashboard,invoices.index,suppliers.index,customers.index'],
         ]);
 
         $user = $request->user();

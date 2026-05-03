@@ -85,9 +85,6 @@ export default function ChatSlideOver({ isOpen, onClose, context }) {
                                         <div className="bg-white border-b border-gray-100 px-6 py-6">
                                             <div className="flex items-center justify-between">
                                                 <DialogTitle className="text-lg font-bold tracking-tight text-gray-900 flex items-center gap-2.5">
-                                                    <div className="bg-indigo-600 p-1.5 rounded-lg shadow-sm">
-                                                        <Sparkles className="h-5 w-5 text-white" />
-                                                    </div>
                                                     AI Assistant
                                                 </DialogTitle>
                                                 <div className="ml-3 flex h-7 items-center">

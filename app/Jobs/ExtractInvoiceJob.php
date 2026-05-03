@@ -51,9 +51,11 @@ class ExtractInvoiceJob implements ShouldQueue
 
             $extracted = $extractor->extractFromText($ocrResult['ocr_text'], $categories);
 
-            // Fallback: if the AI didn't assign a valid category, use "Miscellaneous" (id=22)
+            // Fallback: if the AI didn't assign a valid category, resolve "miscellaneous"
+            // from the database by its slug. Stores null if the category doesn't exist —
+            // never a hardcoded id that could be wrong after a migration or fresh install.
             if (empty($extracted['fields']['category_id'])) {
-                $extracted['fields']['category_id'] = InvoiceCategory::where('slug', 'miscellaneous')->value('id') ?? 22;
+                $extracted['fields']['category_id'] = InvoiceCategory::where('slug', 'miscellaneous')->value('id');
             }
 
             // Step 3 — Save AI-extracted invoice fields via normal update() so $fillable

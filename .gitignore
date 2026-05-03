@@ -35,5 +35,7 @@ DOCUMENTATION.md
 .speckit/
 .specify/
 .agent/
+.agents/
 .claude/
 .qwen/
+skills-lock.json

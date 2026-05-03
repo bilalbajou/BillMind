@@ -52,6 +52,8 @@ class InvoiceChatService
 
     private function generateSql(string $question, ?string $context = null): ?string
     {
+        // Sanitize context before injecting into the prompt — second line of defence
+        $safeContext = $this->sanitizeContext($context);
         $schema = <<<SCHEMA
 Table: invoices (id, tenant_id, uploaded_by, original_filename, stored_filename, file_path, content_hash, mime_type, file_type, file_size, number, po_reference, supplier_name, supplier_address, supplier_ice, supplier_if, supplier_rc, supplier_phone, supplier_email, supplier_rib, supplier_id, customer_name, customer_address, customer_ice, customer_if, customer_id, issue_date, due_date, subtotal_ht, vat_amount, vat_rate, total_ttc, amount_in_words, discount_rate, discount_amount, taxable_amount, payment_method, payment_terms, payment_reference, late_penalty, bank_name, bank_iban, currency, category, category_id, category_corrected_id, category_score, status, error_message, is_duplicate, amount_anomaly, date_anomaly, new_supplier, vat_mismatch, ocr_text, extraction_score, created_at, updated_at, deleted_at)
 Table: invoice_items (id, invoice_id, sort_order, description, sub_description, quantity, unit, unit_price, vat_rate, vat_amount, amount_ht, amount_ttc, discount_rate, discount_amount, created_at, updated_at)
@@ -71,7 +73,7 @@ RULES:
 3. You MUST restrict queries to the current tenant. For any query on `invoices`, `suppliers`, or `customers`, you MUST include a WHERE clause using the exact parameter `:tenant_id` (e.g., `WHERE tenant_id = :tenant_id`). If you join tables, ensure the base table has this filter.
 4. You must not reference any table outside the 5 provided tables.
 5. No subqueries that reference system tables.
-6. Current page context: $context. Use this to prioritize relevant data if the question is ambiguous.
+6. Current page context: $safeContext. Use this to prioritize relevant data if the question is ambiguous.
 PROMPT;
 
         $response = Http::withoutVerifying()->withHeaders([
@@ -140,11 +142,30 @@ PROMPT;
         return true;
     }
 
+    /**
+     * Sanitize the context string against a strict allowlist of known page identifiers.
+     * Returns 'general' for any value that is not explicitly permitted.
+     * This prevents arbitrary user input from being interpolated into the LLM system prompt.
+     */
+    private function sanitizeContext(?string $context): string
+    {
+        $allowed = [
+            'dashboard',
+            'invoices.index',
+            'suppliers.index',
+            'customers.index',
+        ];
+
+        return ($context !== null && in_array($context, $allowed, true))
+            ? $context
+            : 'general';
+    }
+
     private function executeSql(string $sql, int $tenantId): array
     {
         // Set max execution time to 5 seconds
         DB::statement("SET SESSION max_execution_time=5000");
-        
+
         // Execute the query
         $results = DB::select($sql, ['tenant_id' => $tenantId]);
 
@@ -153,7 +174,23 @@ PROMPT;
             $results = array_slice($results, 0, 200);
         }
 
-        return json_decode(json_encode($results), true);
+        $decoded = json_decode(json_encode($results), true);
+
+        // Post-execution tenant verification — final line of defence against
+        // any query that contains :tenant_id but still leaks other tenants' rows
+        // (e.g. via OR 1=1 bypass).
+        foreach ($decoded as $row) {
+            if (isset($row['tenant_id']) && (int) $row['tenant_id'] !== $tenantId) {
+                Log::critical('InvoiceChatService: cross-tenant data leak attempt blocked.', [
+                    'authenticated_tenant' => $tenantId,
+                    'leaked_tenant'        => $row['tenant_id'],
+                    'sql'                  => $sql,
+                ]);
+                throw new \RuntimeException('Security policy violation: cross-tenant data detected.');
+            }
+        }
+
+        return $decoded;
     }
 
     private function narrateResult(string $question, array $rows): string
