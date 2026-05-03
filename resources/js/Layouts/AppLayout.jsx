@@ -1,5 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import ChatSlideOver from '@/Components/ChatSlideOver';
+import { MessageSquare, Sparkles } from 'lucide-react';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const Icon = {
@@ -165,6 +167,7 @@ export default function AppLayout({ header, children }) {
     const user = auth.user;
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
 
     const isAdmin = user.role === 'admin';
 
@@ -328,11 +331,36 @@ export default function AppLayout({ header, children }) {
             </div>
 
             {/* ── Main content ─────────────────────────────────────────── */}
-            <main className="md:ml-64 pt-14 min-h-screen">
+            <main className="md:ml-64 pt-14 min-h-screen relative">
                 <div className="p-6">
                     {header && <div className="mb-6">{header}</div>}
                     {children}
                 </div>
+
+                {/* Floating AI Button */}
+                <div className="fixed bottom-6 right-6 z-40">
+                    <button
+                        onClick={() => setIsChatOpen(true)}
+                        className="group flex items-center gap-2 p-3 bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-600 text-white rounded-2xl shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 hover:-translate-y-1 active:scale-95 transition-all duration-300 border border-white/20"
+                        title="AI Assistant"
+                    >
+                        <div className="relative">
+                            <MessageSquare className="w-6 h-6" />
+                            <div className="absolute -top-1 -right-1">
+                                <Sparkles className="w-3 h-3 text-yellow-300 animate-pulse" />
+                            </div>
+                        </div>
+                        <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 ease-in-out font-semibold whitespace-nowrap">
+                            Assistant IA
+                        </span>
+                    </button>
+                </div>
+
+                <ChatSlideOver 
+                    isOpen={isChatOpen} 
+                    onClose={() => setIsChatOpen(false)} 
+                    context={route().current()}
+                />
             </main>
         </div>
     );

@@ -23,6 +23,7 @@ class ChatController extends Controller
     {
         $validated = $request->validate([
             'question' => 'required|string|max:500',
+            'context' => 'nullable|string|max:100',
         ]);
 
         $user = $request->user();
@@ -31,7 +32,11 @@ class ChatController extends Controller
         }
 
         try {
-            $response = $this->chatService->ask($validated['question'], $user->tenant_id);
+            $response = $this->chatService->ask(
+                $validated['question'], 
+                $user->tenant_id,
+                $validated['context'] ?? null
+            );
 
             if (isset($response['error'])) {
                 return response()->json(['error' => $response['error']], 400);

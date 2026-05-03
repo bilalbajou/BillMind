@@ -538,13 +538,7 @@ export default function Index() {
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setIsChatOpen(true)}
-                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 text-indigo-700 px-4 py-2 text-sm font-semibold hover:bg-indigo-100 transition"
-                        >
-                            <MessageSquare className="w-4 h-4" />
-                            AI Assistant
-                        </button>
+
                         <Link
                             href={route('invoices.upload')}
                             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
@@ -893,7 +887,7 @@ export default function Index() {
             </div>
 
             <InvoiceDetailPanel invoice={detailedInvoice} onClose={() => setDetailedInvoice(null)} />
-            <ChatSlideOver isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+            <ChatSlideOver isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} context="invoices.index" />
         </AppLayout>
     );
 }

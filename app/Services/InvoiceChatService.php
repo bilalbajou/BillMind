@@ -21,11 +21,11 @@ class InvoiceChatService
     /**
      * Main orchestration method
      */
-    public function ask(string $question, int $tenantId): array
+    public function ask(string $question, int $tenantId, ?string $context = null): array
     {
         try {
             // 1. Generate SQL
-            $sql = $this->generateSql($question);
+            $sql = $this->generateSql($question, $context);
             
             if (!$sql) {
                 return ['error' => 'Je n\'ai pas pu interpréter cette question. Essayez de la reformuler.'];
@@ -50,7 +50,7 @@ class InvoiceChatService
         }
     }
 
-    private function generateSql(string $question): ?string
+    private function generateSql(string $question, ?string $context = null): ?string
     {
         $schema = <<<SCHEMA
 Table: invoices (id, tenant_id, uploaded_by, original_filename, stored_filename, file_path, content_hash, mime_type, file_type, file_size, number, po_reference, supplier_name, supplier_address, supplier_ice, supplier_if, supplier_rc, supplier_phone, supplier_email, supplier_rib, supplier_id, customer_name, customer_address, customer_ice, customer_if, customer_id, issue_date, due_date, subtotal_ht, vat_amount, vat_rate, total_ttc, amount_in_words, discount_rate, discount_amount, taxable_amount, payment_method, payment_terms, payment_reference, late_penalty, bank_name, bank_iban, currency, category, category_id, category_corrected_id, category_score, status, error_message, is_duplicate, amount_anomaly, date_anomaly, new_supplier, vat_mismatch, ocr_text, extraction_score, created_at, updated_at, deleted_at)
@@ -71,6 +71,7 @@ RULES:
 3. You MUST restrict queries to the current tenant. For any query on `invoices`, `suppliers`, or `customers`, you MUST include a WHERE clause using the exact parameter `:tenant_id` (e.g., `WHERE tenant_id = :tenant_id`). If you join tables, ensure the base table has this filter.
 4. You must not reference any table outside the 5 provided tables.
 5. No subqueries that reference system tables.
+6. Current page context: $context. Use this to prioritize relevant data if the question is ambiguous.
 PROMPT;
 
         $response = Http::withoutVerifying()->withHeaders([
