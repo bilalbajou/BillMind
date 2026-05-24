@@ -140,12 +140,12 @@ class ExtractInvoiceJob implements ShouldQueue
             if (!empty($extracted['items'])) {
                 $this->invoice->items()->delete();
                 foreach ($extracted['items'] as $item) {
-                    $item['unit_price'] = isset($item['unit_price']) ? (float)$item['unit_price'] : 0.0;
-                    $item['quantity'] = isset($item['quantity']) ? (float)$item['quantity'] : 1.0;
-                    $item['amount_ht'] = isset($item['amount_ht']) ? (float)$item['amount_ht'] : 0.0;
-                    $item['vat_rate'] = isset($item['vat_rate']) ? (float)$item['vat_rate'] : 0.0;
-                    $item['discount_rate'] = isset($item['discount_rate']) ? (float)$item['discount_rate'] : 0.0;
-                    $item['discount_amount'] = isset($item['discount_amount']) ? (float)$item['discount_amount'] : 0.0;
+                    // Numeric fields are already cast and derived in normalizeItems().
+                    // Only enforce DB-level defaults for fields the model requires non-null.
+                    $item['quantity']       = (float) ($item['quantity']       ?? 1.0);
+                    $item['vat_rate']       = (float) ($item['vat_rate']       ?? 0.0);
+                    $item['discount_rate']  = (float) ($item['discount_rate']  ?? 0.0);
+                    $item['discount_amount'] = (float) ($item['discount_amount'] ?? 0.0);
                     $this->invoice->items()->create($item);
                 }
             }
@@ -153,7 +153,7 @@ class ExtractInvoiceJob implements ShouldQueue
             Log::channel('mistral')->info('Extraction job completed', [
                 'invoice_id' => $this->invoice->id,
                 'pages' => $ocrResult['page_count'],
-                'items' => count($extracted['items']),
+                'items' => \count($extracted['items']),
             ]);
         } catch (\Throwable $e) {
             $isLastAttempt = $this->attempts() >= $this->tries;

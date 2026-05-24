@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(composer *)"
+      "Bash(composer *)",
+      "Bash(php *)"
     ]
-  }
+  },
+  "$version": 3
 }

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class InvoiceChatService
 {
     private string $openaiKey;
-    private string $model = 'gpt-5.5';
+    private string $model = 'gpt-5.4-mini';
     private array $allowedTables = ['invoices', 'invoice_items', 'invoice_categories', 'suppliers', 'customers'];
 
     public function __construct()
@@ -24,30 +24,102 @@ class InvoiceChatService
     public function ask(string $question, int $tenantId, ?string $context = null): array
     {
         try {
-            // 1. Generate SQL
+            // 1. Handle greetings, thanks, help, and other conversational messages directly
+            if ($this->isConversational($question)) {
+                return ['answer' => $this->respondConversationally($question)];
+            }
+
+            // 2. Generate SQL
             $sql = $this->generateSql($question, $context);
-            
-            if (!$sql) {
-                return ['error' => 'Je n\'ai pas pu interpréter cette question. Essayez de la reformuler.'];
+
+            // 3. Validate SQL — fall back to conversational if it cannot be generated or is unsafe
+            if (!$sql || !$this->validateSql($sql)) {
+                return ['answer' => $this->respondConversationally($question)];
             }
 
-            // 2. Validate SQL
-            $isValid = $this->validateSql($sql);
-            if (!$isValid) {
-                return ['error' => 'Je n\'ai pas pu interpréter cette question. Essayez de la reformuler.'];
-            }
-
-            // 3. Execute SQL
+            // 4. Execute SQL
             $rows = $this->executeSql($sql, $tenantId);
 
-            // 4. Narrate results
+            // 5. Narrate results in a human-friendly way
             $answer = $this->narrateResult($question, $rows);
 
             return ['answer' => $answer];
         } catch (Exception $e) {
             Log::error('InvoiceChatService Error: ' . $e->getMessage());
-            return ['error' => 'Une erreur s\'est produite lors de la génération de la réponse.'];
+            return ['error' => 'Something went wrong on my end. Please try again in a moment.'];
         }
+    }
+
+    /**
+     * Detect obvious conversational messages (greetings, thanks, help, small talk)
+     * using lightweight pattern matching — avoids an extra API call for common cases.
+     */
+    private function isConversational(string $question): bool
+    {
+        $q = strtolower(trim($question));
+
+        $patterns = [
+            '/^(hi|hello|hey|good morning|good afternoon|good evening)\b/i',
+            '/^(bonjour|salut|bonsoir|coucou)\b/i',
+            '/^(salam|مرحبا|أهلا|صباح الخير|مساء الخير)\b/u',
+            '/^(thanks|thank you|thx|merci|شكرا|gracias)\b/i',
+            '/^(how are you|ça va|comment (tu vas|vas-tu)|كيف حالك)\b/i',
+            '/^(help|aide|ساعدني|what can you do|que peux.tu faire)\b/i',
+            '/^(ok|okay|good|great|perfect|parfait|super|génial|nice|cool)\s*[!.]?\s*$/i',
+            '/^(bye|goodbye|au revoir|مع السلامة|à bientôt|ciao)\b/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $q)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Return a warm, human conversational response without querying the database.
+     */
+    private function respondConversationally(string $question): string
+    {
+        $prompt = <<<PROMPT
+You are BillMind Assistant, a friendly and professional AI assistant built into BillMind — an invoice management platform.
+
+Your personality:
+- Warm, approachable, and professional — like a helpful colleague, not a robot
+- Reply in the same language the user writes in (French, English, Arabic, or any mix)
+- Keep replies short and natural — no walls of text
+- Never mention SQL, databases, or internal technical details
+
+What you can help with (mention only when the user asks for help):
+- Invoice totals, trends, and summaries
+- Spending by supplier, category, or time period
+- Anomalies and duplicate invoices
+- Customer and supplier data
+
+If the user greets you → greet back warmly and briefly mention you can answer questions about their invoices.
+If the user thanks you → acknowledge it naturally (e.g. "Happy to help! 😊").
+If the user asks for help → explain your capabilities in 2–3 short bullet points.
+If the user asks something you cannot answer (e.g. unrelated to BillMind) → say so politely and redirect.
+PROMPT;
+
+        $response = Http::withoutVerifying()->withHeaders([
+            'Authorization' => 'Bearer ' . $this->openaiKey,
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model'    => $this->model,
+            'messages' => [
+                ['role' => 'system', 'content' => $prompt],
+                ['role' => 'user',   'content' => $question],
+            ],
+        ]);
+
+        if ($response->successful()) {
+            return $response->json('choices.0.message.content')
+                ?? 'Hi! I\'m here to help with your invoices. What would you like to know?';
+        }
+
+        return 'Hi! I\'m here to help with your invoice data. What would you like to know?';
     }
 
     private function generateSql(string $question, ?string $context = null): ?string
@@ -63,17 +135,20 @@ Table: customers (id, tenant_id, name, address, ice, if, rc, phone, email, rib, 
 SCHEMA;
 
         $prompt = <<<PROMPT
-You are a SQL expert. The user wants to query their invoicing database.
-Here is the strict database schema:
+You are the SQL backend of BillMind Assistant, a conversational invoice management assistant.
+Your only job is to translate the user's data question into a safe SQL query.
+
+Database schema:
 $schema
 
 RULES:
-1. Return ONLY the raw SQL query string. Do not include markdown formatting, markdown blocks (like ```sql), or explanations. Just the SQL.
-2. Only SELECT statements are permitted.
-3. You MUST restrict queries to the current tenant. For any query on `invoices`, `suppliers`, or `customers`, you MUST include a WHERE clause using the exact parameter `:tenant_id` (e.g., `WHERE tenant_id = :tenant_id`). If you join tables, ensure the base table has this filter.
-4. You must not reference any table outside the 5 provided tables.
-5. No subqueries that reference system tables.
-6. Current page context: $safeContext. Use this to prioritize relevant data if the question is ambiguous.
+1. If the user's message is NOT a data question (greeting, thanks, small talk, help request, general question) → reply with exactly: NULL
+2. Return ONLY the raw SQL query — no markdown fences (no ```sql), no explanation, nothing else.
+3. Only SELECT statements are allowed.
+4. Every query on `invoices`, `suppliers`, or `customers` MUST include WHERE tenant_id = :tenant_id. If joining tables, apply the filter on the base table.
+5. Never reference a table outside the 5 provided ones.
+6. No subqueries referencing system tables.
+7. Current page context: $safeContext — use it to prioritize relevant data when the question is ambiguous.
 PROMPT;
 
         $response = Http::withoutVerifying()->withHeaders([
@@ -84,14 +159,17 @@ PROMPT;
                 ['role' => 'system', 'content' => $prompt],
                 ['role' => 'user', 'content' => $question],
             ],
-            'temperature' => 0.0,
         ]);
 
         if ($response->successful()) {
             $sql = $response->json('choices.0.message.content');
-            // Clean up if it still includes markdown blocks
             $sql = preg_replace('/^```sql\s*|\s*```$/i', '', trim($sql));
-            return trim($sql);
+            $sql = trim($sql);
+            // Model signals "not a data question"
+            if (strtoupper($sql) === 'NULL' || $sql === '') {
+                return null;
+            }
+            return $sql;
         }
 
         return null;
@@ -129,7 +207,7 @@ PROMPT;
         $tablesReferenced = array_unique($matches[1]);
         
         foreach ($tablesReferenced as $table) {
-            if (!in_array(strtolower($table), $this->allowedTables)) {
+            if (!\in_array(strtolower($table), $this->allowedTables)) {
                 return false;
             }
         }
@@ -156,7 +234,7 @@ PROMPT;
             'customers.index',
         ];
 
-        return ($context !== null && in_array($context, $allowed, true))
+        return ($context !== null && \in_array($context, $allowed, true))
             ? $context
             : 'general';
     }
@@ -170,8 +248,8 @@ PROMPT;
         $results = DB::select($sql, ['tenant_id' => $tenantId]);
 
         // Cap results at 200 rows
-        if (count($results) > 200) {
-            $results = array_slice($results, 0, 200);
+        if (\count($results) > 200) {
+            $results = \array_slice($results, 0, 200);
         }
 
         $decoded = json_decode(json_encode($results), true);
@@ -196,35 +274,42 @@ PROMPT;
     private function narrateResult(string $question, array $rows): string
     {
         $prompt = <<<PROMPT
-You are a financial assistant for an invoice management system. Answer in the same language the user used.
+You are BillMind Assistant, a friendly and professional financial assistant embedded in an invoice management platform.
+Answer in the same language the user used (French, English, Arabic, or any mix).
 
-FORMATTING RULES — follow them strictly:
-- Lead with a one-sentence direct answer.
-- For monetary amounts: always include the currency (e.g. "12 450,00 MAD"), format numbers with thousands separators and 2 decimal places.
-- For lists (multiple invoices, suppliers, etc.): use a numbered or bulleted list, one item per line, each line showing the key identifier and the amount.
-- For a single scalar result (one total, one count): state it clearly on its own line, prominently.
-- If there are multiple figures, group them with short labels (e.g. "Subtotal HT:", "VAT:", "Total TTC:").
-- Keep the response concise — no filler phrases. Skip the intro like "Based on the data…".
-- If the result is empty: say clearly that no matching data was found.
+Your tone:
+- Warm and conversational — like a helpful colleague explaining results, not a system generating a report
+- Natural sentences first, then formatted data if needed
+- Never say "Based on the data…", "According to the results…", or "The query returned…"
+- Never mention SQL, databases, or technical details
+
+Formatting rules:
+- Lead with a natural sentence that directly answers the question (e.g. "You spent 12 450,00 MAD on IT services this month.")
+- Monetary amounts: include currency (e.g. "12 450,00 MAD"), thousands separators, 2 decimal places
+- Lists (invoices, suppliers…): clean numbered or bulleted list, one item per line with key info
+- Single number result: state it naturally and prominently
+- Multiple figures: short labels inline (e.g. "Subtotal: 10 000 MAD · VAT: 2 000 MAD · Total: 12 000 MAD")
+- Empty result: say so naturally (e.g. "It looks like there are no invoices matching that for now.")
+- Keep it concise — no unnecessary filler
 PROMPT;
 
-        $userMessage = "Question: " . $question . "\nData: " . json_encode($rows);
+        $userMessage = 'Question: ' . $question . "\nData: " . json_encode($rows, JSON_UNESCAPED_UNICODE);
 
         $response = Http::withoutVerifying()->withHeaders([
             'Authorization' => 'Bearer ' . $this->openaiKey,
         ])->post('https://api.openai.com/v1/chat/completions', [
-            'model' => $this->model,
+            'model'    => $this->model,
             'messages' => [
                 ['role' => 'system', 'content' => $prompt],
-                ['role' => 'user', 'content' => $userMessage],
+                ['role' => 'user',   'content' => $userMessage],
             ],
-            'temperature' => 0.7,
         ]);
 
         if ($response->successful()) {
-            return $response->json('choices.0.message.content') ?? 'No answer generated.';
+            return $response->json('choices.0.message.content')
+                ?? 'I found the data but had trouble putting it into words. Please try rephrasing your question.';
         }
 
-        return 'Sorry, I could not generate a response from the data.';
+        return 'I couldn\'t generate a response right now. Please try again in a moment.';
     }
 }

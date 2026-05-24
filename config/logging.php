@@ -60,9 +60,9 @@ return [
             'replace_placeholders' => true,
         ],
 
-        'openrouter' => [
+        'openai' => [
             'driver' => 'daily',
-            'path'   => storage_path('logs/openrouter.log'),
+            'path'   => storage_path('logs/openai.log'),
             'level'  => 'debug',
             'days'   => 30,
             'replace_placeholders' => true,

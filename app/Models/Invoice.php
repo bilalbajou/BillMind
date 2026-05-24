@@ -8,6 +8,67 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @property int                        $id
+ * @property int                        $tenant_id
+ * @property int|null                   $uploaded_by
+ * @property int|null                   $supplier_id
+ * @property int|null                   $customer_id
+ * @property string                     $status
+ * @property string|null                $error_message
+ * @property string|null                $original_filename
+ * @property string|null                $stored_filename
+ * @property string|null                $file_path
+ * @property string|null                $content_hash
+ * @property string|null                $mime_type
+ * @property string|null                $file_type
+ * @property int|null                   $file_size
+ * @property string|null                $number
+ * @property string|null                $po_reference
+ * @property \Carbon\Carbon|null        $issue_date
+ * @property \Carbon\Carbon|null        $due_date
+ * @property string|null                $supplier_name
+ * @property string|null                $supplier_address
+ * @property string|null                $supplier_ice
+ * @property string|null                $supplier_if
+ * @property string|null                $supplier_rc
+ * @property string|null                $supplier_phone
+ * @property string|null                $supplier_email
+ * @property string|null                $supplier_rib
+ * @property string|null                $customer_name
+ * @property string|null                $customer_address
+ * @property string|null                $customer_ice
+ * @property string|null                $customer_if
+ * @property float|null                 $subtotal_ht
+ * @property float|null                 $discount_rate
+ * @property float|null                 $discount_amount
+ * @property float|null                 $taxable_amount
+ * @property float|null                 $vat_rate
+ * @property float|null                 $vat_amount
+ * @property float|null                 $total_ttc
+ * @property string                     $currency
+ * @property string|null                $amount_in_words
+ * @property string|null                $payment_method
+ * @property string|null                $payment_terms
+ * @property string|null                $payment_reference
+ * @property string|null                $late_penalty
+ * @property string|null                $bank_name
+ * @property string|null                $bank_iban
+ * @property string|null                $category
+ * @property int|null                   $category_id
+ * @property int|null                   $category_corrected_id
+ * @property float|null                 $category_score
+ * @property string|null                $ocr_text
+ * @property float|null                 $extraction_score
+ * @property bool                       $is_duplicate
+ * @property bool                       $amount_anomaly
+ * @property bool                       $vat_mismatch
+ * @property bool                       $date_anomaly
+ * @property bool                       $new_supplier
+ * @property \Carbon\Carbon             $created_at
+ * @property \Carbon\Carbon             $updated_at
+ * @property \Carbon\Carbon|null        $deleted_at
+ */
 class Invoice extends Model
 {
     use SoftDeletes, BelongsToTenant, LogsActivity;
