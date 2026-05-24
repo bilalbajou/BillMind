@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 class InvoiceChatService
 {
     private string $openaiKey;
-    private string $model = 'gpt-4o-mini';
+    private string $model = 'gpt-5.5';
     private array $allowedTables = ['invoices', 'invoice_items', 'invoice_categories', 'suppliers', 'customers'];
 
     public function __construct()

@@ -14,7 +14,7 @@ A slide-over chat panel that lets users ask natural language questions about the
 - **Interaction model:** Single-turn (each question is independent; no conversation history)
 - **AI capabilities:** Read-only queries + simple analysis/trend commentary
 - **Language:** Detects and matches the user's input language (French or English)
-- **Model:** OpenAI `gpt-4o-mini` via `OPENAI_API_KEY`
+- **Model:** OpenAI `gpt-5.5` via `OPENAI_API_KEY`
 
 ---
 

@@ -99,7 +99,7 @@ Copy `.env.example` to `.env` and set the following keys beyond the standard Lar
 |---|---|---|
 | `MISTRAL_API_KEY` | Yes | Mistral AI — used by `MistralOcrService` for PDF/image OCR |
 | `OPENROUTER_API_KEY` | Yes | OpenRouter — used by `OpenAiInvoiceExtractorService` for structured field extraction |
-| `OPENAI_API_KEY` | Yes | OpenAI — used by `InvoiceChatService` for natural-language chat (model: `gpt-4o-mini`) |
+| `OPENAI_API_KEY` | Yes | OpenAI — used by `InvoiceChatService` for natural-language chat (model: `gpt-5.5`) |
 
 The default database is SQLite (`database/database.sqlite`). For MySQL/PostgreSQL in production, update the `DB_*` variables and run `php artisan migrate`.
 

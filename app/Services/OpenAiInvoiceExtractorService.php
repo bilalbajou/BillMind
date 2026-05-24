@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class OpenAiInvoiceExtractorService
 {
     private const ENDPOINT = 'https://api.openai.com/v1/chat/completions';
-    private const MODEL = 'gpt-4o-mini';
+    private const MODEL = 'gpt-5.5';
 
     private const INVOICE_FIELDS = [
         'number',
