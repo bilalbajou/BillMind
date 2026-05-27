@@ -55,7 +55,15 @@ class DashboardController extends Controller
         }
         $recentInvoices = $recentInvoicesQuery->latest('issue_date')
             ->limit(5)
-            ->get(['id', 'number', 'supplier_name', 'original_filename', 'issue_date', 'total_ttc', 'currency', 'status', 'category_id']);
+            ->get(['id', 'number', 'supplier_name', 'original_filename', 'issue_date', 'total_ttc', 'currency', 'status', 'category_id'])
+            ->map(function ($invoice) use ($tenantCurrency) {
+                $invoice->total_ttc_converted = $this->convert(
+                    (float) $invoice->total_ttc,
+                    $invoice->currency ?? 'MAD',
+                    $tenantCurrency
+                );
+                return $invoice;
+            });
 
         // Calculate total revenue converted to tenant's currency
         $totalRevenueConverted = $this->calculateTotalRevenue($dateFrom, $dateTo, $tenantCurrency);
@@ -75,8 +83,6 @@ class DashboardController extends Controller
             'suppliersCount' => Supplier::count(),
             'customersCount' => Customer::count(),
             'monthlyRevenue' => $this->getMonthlyRevenue($tenantCurrency, $dateFrom, $dateTo, $isAllTime),
-            'topSuppliers' => $this->getTopSuppliers($tenantCurrency, $dateFrom, $dateTo, $isAllTime),
-            'topCustomers' => $this->getTopCustomers($tenantCurrency, $dateFrom, $dateTo, $isAllTime),
             'anomalyFlags' => $this->getAnomalyFlags($dateFrom, $dateTo, $isAllTime),
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
@@ -169,76 +175,6 @@ class DashboardController extends Controller
             'total' => round($total, 2),
         ], array_keys($map), array_values($map));
     }
-
-    private function getTopSuppliers(string $targetCurrency, ?string $dateFrom, ?string $dateTo, bool $isAllTime): array
-    {
-        $query = Invoice::where('status', 'processed')->whereNotNull('supplier_id')->with('supplier');
-        if (!$isAllTime) {
-            $query->whereBetween('issue_date', [$dateFrom, $dateTo]);
-        }
-
-        $invoices = $query->get(['supplier_id', 'total_ttc', 'currency']);
-        $map = [];
-        $names = [];
-
-        foreach ($invoices as $invoice) {
-            $key = $invoice->supplier_id;
-            if (!isset($map[$key])) {
-                $map[$key] = 0.0;
-                $names[$key] = $invoice->supplier->name ?? 'Unknown';
-            }
-            $map[$key] += $this->convert((float) $invoice->total_ttc, $invoice->currency ?? $targetCurrency, $targetCurrency);
-        }
-
-        arsort($map);
-        $top = array_slice($map, 0, 5, true);
-
-        $result = [];
-        foreach ($top as $id => $total) {
-            $result[] = [
-                'name' => $names[$id],
-                'total' => round($total, 2)
-            ];
-        }
-
-        return $result;
-    }
-
-    private function getTopCustomers(string $targetCurrency, ?string $dateFrom, ?string $dateTo, bool $isAllTime): array
-    {
-        $query = Invoice::where('status', 'processed')->whereNotNull('customer_id')->with('customer');
-        if (!$isAllTime) {
-            $query->whereBetween('issue_date', [$dateFrom, $dateTo]);
-        }
-
-        $invoices = $query->get(['customer_id', 'total_ttc', 'currency']);
-        $map = [];
-        $names = [];
-
-        foreach ($invoices as $invoice) {
-            $key = $invoice->customer_id;
-            if (!isset($map[$key])) {
-                $map[$key] = 0.0;
-                $names[$key] = $invoice->customer->name ?? 'Unknown';
-            }
-            $map[$key] += $this->convert((float) $invoice->total_ttc, $invoice->currency ?? $targetCurrency, $targetCurrency);
-        }
-
-        arsort($map);
-        $top = array_slice($map, 0, 5, true);
-
-        $result = [];
-        foreach ($top as $id => $total) {
-            $result[] = [
-                'name' => $names[$id],
-                'total' => round($total, 2)
-            ];
-        }
-
-        return $result;
-    }
-
-
 
     private function getAnomalyFlags(?string $dateFrom, ?string $dateTo, bool $isAllTime): array
     {

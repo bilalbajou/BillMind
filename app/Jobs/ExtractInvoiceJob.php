@@ -140,12 +140,13 @@ class ExtractInvoiceJob implements ShouldQueue
             if (!empty($extracted['items'])) {
                 $this->invoice->items()->delete();
                 foreach ($extracted['items'] as $item) {
-                    // Numeric fields are already cast and derived in normalizeItems().
-                    // Only enforce DB-level defaults for fields the model requires non-null.
-                    $item['quantity']       = (float) ($item['quantity']       ?? 1.0);
-                    $item['vat_rate']       = (float) ($item['vat_rate']       ?? 0.0);
-                    $item['discount_rate']  = (float) ($item['discount_rate']  ?? 0.0);
-                    $item['discount_amount'] = (float) ($item['discount_amount'] ?? 0.0);
+                    // Enforce DB-level NOT NULL defaults for columns without a DB default.
+                    $item['description']     = (string) ($item['description']    ?? 'Item');
+                    $item['quantity']        = (float)  ($item['quantity']       ?? 1.0);
+                    $item['unit_price']      = (float)  ($item['unit_price']     ?? 0.0);
+                    $item['vat_rate']        = (float)  ($item['vat_rate']       ?? 0.0);
+                    $item['discount_rate']   = (float)  ($item['discount_rate']  ?? 0.0);
+                    $item['discount_amount'] = (float)  ($item['discount_amount'] ?? 0.0);
                     $this->invoice->items()->create($item);
                 }
             }

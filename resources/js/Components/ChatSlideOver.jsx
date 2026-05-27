@@ -8,6 +8,8 @@ import {
 } from '@headlessui/react';
 import { X, Send, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function ChatSlideOver({ isOpen, onClose, context }) {
     const [messages, setMessages] = useState([]);
@@ -29,17 +31,22 @@ export default function ChatSlideOver({ isOpen, onClose, context }) {
 
         const question = input.trim();
         setInput('');
-        
-        // Add user message
-        const newUserMsg = { role: 'user', content: question };
-        setMessages((prev) => [...prev, newUserMsg]);
-        
+
+        // Snapshot current messages BEFORE adding the new user message,
+        // so we send only prior exchanges as history (not the current question).
+        const history = messages
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .slice(-10)
+            .map(m => ({ role: m.role, content: m.content }));
+
+        setMessages((prev) => [...prev, { role: 'user', content: question }]);
         setIsLoading(true);
 
         try {
-            const response = await axios.post('/chat/ask', { 
+            const response = await axios.post('/chat/ask', {
                 question,
-                context: context
+                context,
+                history,
             });
             const aiMsg = { role: 'assistant', content: response.data.answer };
             setMessages((prev) => [...prev, aiMsg]);
@@ -124,17 +131,21 @@ export default function ChatSlideOver({ isOpen, onClose, context }) {
                                                         <p className="text-sm font-medium text-gray-600">Some example questions:</p>
                                                         <div className="flex flex-col gap-3">
                                                             {(context === 'invoices.index' ? [
-                                                                "How many unpaid invoices do I have?",
-                                                                "What is the highest invoice amount?",
-                                                                "Show me invoices from last month"
+                                                                "Show me all duplicate invoices",
+                                                                "What is the total amount of processed invoices?",
+                                                                "Find invoices with a VAT mismatch anomaly"
                                                             ] : context === 'suppliers.index' ? [
-                                                                "Who is my top supplier?",
-                                                                "How many suppliers do I have?",
-                                                                "List suppliers by purchase volume"
+                                                                "Who is our top supplier by purchase volume?",
+                                                                "List new suppliers added recently",
+                                                                "Which supplier has the highest total VAT?"
+                                                            ] : context === 'customers.index' ? [
+                                                                "Who is our top customer by billing amount?",
+                                                                "List all customers with their ICE numbers",
+                                                                "Show me customers with their total invoice counts"
                                                             ] : [
-                                                                "What are my unpaid invoices?",
-                                                                "How much did I spend this month?",
-                                                                "Which supplier costs me the most?"
+                                                                "Give me a breakdown of spending by category",
+                                                                "What is the total sum of all invoices?",
+                                                                "Are there any invoices with date anomalies?"
                                                             ]).map((suggestion, i) => (
                                                                 <button 
                                                                     key={i}
@@ -156,15 +167,42 @@ export default function ChatSlideOver({ isOpen, onClose, context }) {
                                                         className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}
                                                     >
                                                         <div
-                                                            className={`rounded-2xl px-4 py-2.5 max-w-[88%] text-sm leading-relaxed whitespace-pre-wrap ${
+                                                            className={`rounded-2xl px-4 py-2.5 max-w-[88%] text-sm leading-relaxed ${
                                                                 msg.role === 'user'
-                                                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                                                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 whitespace-pre-wrap'
                                                                     : msg.role === 'error'
-                                                                    ? 'bg-red-50 text-red-700 border border-red-100'
+                                                                    ? 'bg-red-50 text-red-700 border border-red-100 whitespace-pre-wrap'
                                                                     : 'bg-white text-gray-900 border border-gray-100 shadow-sm'
                                                             }`}
                                                         >
-                                                            {msg.content}
+                                                            {msg.role === 'assistant' ? (
+                                                                <ReactMarkdown
+                                                                    remarkPlugins={[remarkGfm]}
+                                                                    components={{
+                                                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                                                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                                                                        em: ({ children }) => <em className="italic">{children}</em>,
+                                                                        ul: ({ children }) => <ul className="mt-1 mb-2 space-y-0.5 list-disc list-inside text-gray-700">{children}</ul>,
+                                                                        ol: ({ children }) => <ol className="mt-1 mb-2 space-y-0.5 list-decimal list-inside text-gray-700">{children}</ol>,
+                                                                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                                                        table: ({ children }) => (
+                                                                            <div className="overflow-x-auto my-2 rounded-lg border border-gray-100">
+                                                                                <table className="min-w-full text-xs">{children}</table>
+                                                                            </div>
+                                                                        ),
+                                                                        thead: ({ children }) => <thead className="bg-gray-50 border-b border-gray-100">{children}</thead>,
+                                                                        tbody: ({ children }) => <tbody className="divide-y divide-gray-50">{children}</tbody>,
+                                                                        th: ({ children }) => <th className="px-3 py-2 text-left font-semibold text-gray-600 whitespace-nowrap">{children}</th>,
+                                                                        td: ({ children }) => <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{children}</td>,
+                                                                        code: ({ children }) => <code className="px-1 py-0.5 rounded bg-gray-100 text-indigo-600 text-xs font-mono">{children}</code>,
+                                                                        hr: () => <hr className="my-2 border-gray-100" />,
+                                                                    }}
+                                                                >
+                                                                    {msg.content}
+                                                                </ReactMarkdown>
+                                                            ) : (
+                                                                msg.content
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}

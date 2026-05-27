@@ -129,7 +129,15 @@ Extract all available fields from the text and return a single JSON object.
   * "1 234,56" → 1234.56 | "1.234,56" → 1234.56 | "1,234.56" → 1234.56
 - `discount_rate` and `vat_rate` must be a plain percentage number (e.g. 20 for 20%, 3.5 for 3.5%).
 - `payment_method` must be one of: bank_transfer, check, cash, card, bill_of_exchange, other.
-- `currency` must be ISO 4217 (MAD, EUR, USD…). Default to MAD if not specified.
+- `currency` must be ISO 4217. Detect it from explicit labels or symbols found ANYWHERE in the document (header, footer, column headers, amounts):
+  * "$" or "USD" or "US$" → USD
+  * "CA$" or "CAD" → CAD
+  * "€" or "EUR" → EUR
+  * "£" or "GBP" → GBP
+  * "MAD" or "DH" or "درهم" → MAD
+  * "د.م." → MAD
+  If no currency evidence is found anywhere in the text, return null — do NOT default to MAD.
+  Return the ISO 4217 code (3 uppercase letters), never a symbol.
 - Use null for any field not found in the text. Do NOT invent or estimate data.{$categorySection}
 
 ## Line Item Extraction Rules (CRITICAL)
@@ -180,7 +188,7 @@ Return ONLY this JSON structure, no explanation, no markdown fences:
     "vat_rate": null,
     "vat_amount": null,
     "total_ttc": null,
-    "currency": "MAD",
+    "currency": null,
     "amount_in_words": null,
     "payment_method": null,
     "payment_terms": null,
@@ -210,7 +218,45 @@ PROMPT;
     private function filterFields(array $data): array
     {
         $filtered = array_intersect_key($data, array_flip(self::INVOICE_FIELDS));
-        return array_filter($filtered, fn($v) => $v !== null);
+        $filtered = array_filter($filtered, fn($v) => $v !== null);
+
+        // Normalize currency: map symbols/variants to ISO 4217, then default to MAD.
+        // This handles cases where the LLM returns "$", "€", or a variant instead of the code.
+        $filtered['currency'] = $this->normalizeCurrency($filtered['currency'] ?? null);
+
+        return $filtered;
+    }
+
+    private function normalizeCurrency(?string $raw): string
+    {
+        if ($raw === null || trim($raw) === '') {
+            return 'MAD';
+        }
+
+        $map = [
+            '$'    => 'USD',
+            'us$'  => 'USD',
+            'usd'  => 'USD',
+            'ca$'  => 'CAD',
+            'cad'  => 'CAD',
+            '€'    => 'EUR',
+            'eur'  => 'EUR',
+            '£'    => 'GBP',
+            'gbp'  => 'GBP',
+            'dh'   => 'MAD',
+            'mad'  => 'MAD',
+            'د.م.' => 'MAD',
+            'درهم' => 'MAD',
+        ];
+
+        $key = strtolower(trim($raw));
+        if (isset($map[$key])) {
+            return $map[$key];
+        }
+
+        // Accept any 3-letter uppercase code the LLM returned; otherwise fall back to MAD.
+        $upper = strtoupper(trim($raw));
+        return preg_match('/^[A-Z]{3}$/', $upper) ? $upper : 'MAD';
     }
 
     private const VALID_UNITS = ['piece', 'hour', 'kg', 'flat_fee', 'km', 'day', 'month', 'other'];

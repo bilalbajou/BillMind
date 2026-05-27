@@ -22,10 +22,11 @@ class ChatController extends Controller
     public function ask(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'question' => 'required|string|max:500',
-            // Allowlist: only known page identifiers are accepted.
-            // This is the first line of defence against prompt injection.
-            'context'  => ['nullable', 'string', 'in:dashboard,invoices.index,suppliers.index,customers.index'],
+            'question'        => 'required|string|max:500',
+            'context'         => ['nullable', 'string', 'in:dashboard,invoices.index,suppliers.index,customers.index'],
+            'history'         => ['nullable', 'array', 'max:10'],
+            'history.*.role'  => ['required', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required', 'string', 'max:2000'],
         ]);
 
         $user = $request->user();
@@ -34,10 +35,14 @@ class ChatController extends Controller
         }
 
         try {
+            $tenantCurrency = $user->tenant()->value('currency') ?? 'MAD';
+
             $response = $this->chatService->ask(
-                $validated['question'], 
+                $validated['question'],
                 $user->tenant_id,
-                $validated['context'] ?? null
+                $validated['context'] ?? null,
+                $tenantCurrency,
+                $validated['history'] ?? []
             );
 
             if (isset($response['error'])) {

@@ -21,27 +21,27 @@ class InvoiceChatService
     /**
      * Main orchestration method
      */
-    public function ask(string $question, int $tenantId, ?string $context = null): array
+    public function ask(string $question, int $tenantId, ?string $context = null, string $tenantCurrency = 'MAD', array $history = []): array
     {
         try {
             // 1. Handle greetings, thanks, help, and other conversational messages directly
             if ($this->isConversational($question)) {
-                return ['answer' => $this->respondConversationally($question)];
+                return ['answer' => $this->respondConversationally($question, $history)];
             }
 
             // 2. Generate SQL
-            $sql = $this->generateSql($question, $context);
+            $sql = $this->generateSql($question, $context, $tenantCurrency, $history);
 
             // 3. Validate SQL — fall back to conversational if it cannot be generated or is unsafe
             if (!$sql || !$this->validateSql($sql)) {
-                return ['answer' => $this->respondConversationally($question)];
+                return ['answer' => $this->respondConversationally($question, $history)];
             }
 
             // 4. Execute SQL
             $rows = $this->executeSql($sql, $tenantId);
 
             // 5. Narrate results in a human-friendly way
-            $answer = $this->narrateResult($question, $rows);
+            $answer = $this->narrateResult($question, $rows, $tenantCurrency, $history);
 
             return ['answer' => $answer];
         } catch (Exception $e) {
@@ -81,7 +81,7 @@ class InvoiceChatService
     /**
      * Return a warm, human conversational response without querying the database.
      */
-    private function respondConversationally(string $question): string
+    private function respondConversationally(string $question, array $history = []): string
     {
         $prompt = <<<PROMPT
 You are BillMind Assistant, a friendly and professional AI assistant built into BillMind — an invoice management platform.
@@ -104,14 +104,17 @@ If the user asks for help → explain your capabilities in 2–3 short bullet po
 If the user asks something you cannot answer (e.g. unrelated to BillMind) → say so politely and redirect.
 PROMPT;
 
+        $messages = [['role' => 'system', 'content' => $prompt]];
+        foreach ($history as $msg) {
+            $messages[] = ['role' => $msg['role'], 'content' => $msg['content']];
+        }
+        $messages[] = ['role' => 'user', 'content' => $question];
+
         $response = Http::withoutVerifying()->withHeaders([
             'Authorization' => 'Bearer ' . $this->openaiKey,
         ])->post('https://api.openai.com/v1/chat/completions', [
             'model'    => $this->model,
-            'messages' => [
-                ['role' => 'system', 'content' => $prompt],
-                ['role' => 'user',   'content' => $question],
-            ],
+            'messages' => $messages,
         ]);
 
         if ($response->successful()) {
@@ -122,16 +125,159 @@ PROMPT;
         return 'Hi! I\'m here to help with your invoice data. What would you like to know?';
     }
 
-    private function generateSql(string $question, ?string $context = null): ?string
+    private function generateSql(string $question, ?string $context = null, string $tenantCurrency = 'MAD', array $history = []): ?string
     {
         // Sanitize context before injecting into the prompt — second line of defence
         $safeContext = $this->sanitizeContext($context);
+
+        // Build a short list of prior user questions so the LLM can resolve references
+        // like "those invoices", "the same supplier", "now group by month".
+        // Only user questions are included — narrated answers are not safe to inject into SQL gen.
+        $priorQuestions = array_values(array_filter(
+            array_map(fn($m) => $m['role'] === 'user' ? $m['content'] : null, $history)
+        ));
+        $historyNote = '';
+        if (!empty($priorQuestions)) {
+            $lines = implode("\n", array_map(fn($q, $i) => ($i + 1) . '. ' . $q, $priorQuestions, array_keys($priorQuestions)));
+            $historyNote = "\nPrior questions in this session (resolve references like \"those\", \"the same\", \"now\" against these):\n{$lines}\n";
+        }
+
+        $ratesToEur = ['MAD' => 0.092, 'EUR' => 1.0, 'USD' => 0.92, 'GBP' => 1.17];
+        $targetRate = $ratesToEur[$tenantCurrency] ?? 1.0;
+
         $schema = <<<SCHEMA
-Table: invoices (id, tenant_id, uploaded_by, original_filename, stored_filename, file_path, content_hash, mime_type, file_type, file_size, number, po_reference, supplier_name, supplier_address, supplier_ice, supplier_if, supplier_rc, supplier_phone, supplier_email, supplier_rib, supplier_id, customer_name, customer_address, customer_ice, customer_if, customer_id, issue_date, due_date, subtotal_ht, vat_amount, vat_rate, total_ttc, amount_in_words, discount_rate, discount_amount, taxable_amount, payment_method, payment_terms, payment_reference, late_penalty, bank_name, bank_iban, currency, category, category_id, category_corrected_id, category_score, status, error_message, is_duplicate, amount_anomaly, date_anomaly, new_supplier, vat_mismatch, ocr_text, extraction_score, created_at, updated_at, deleted_at)
-Table: invoice_items (id, invoice_id, sort_order, description, sub_description, quantity, unit, unit_price, vat_rate, vat_amount, amount_ht, amount_ttc, discount_rate, discount_amount, created_at, updated_at)
-Table: invoice_categories (id, name, slug, icon, color, description, is_active, sort_order, created_at, updated_at)
-Table: suppliers (id, tenant_id, name, address, ice, if, rc, phone, email, rib, created_at, updated_at)
-Table: customers (id, tenant_id, name, address, ice, if, rc, phone, email, rib, created_at, updated_at)
+=== TABLE: invoices ===
+Tenant-scoped. Soft-deleted (deleted_at IS NULL required). One row per uploaded invoice document.
+Columns:
+  id                    bigint PK
+  tenant_id             bigint  [ALWAYS filter: WHERE invoices.tenant_id = :tenant_id]
+  uploaded_by           bigint  (FK → users.id)
+  number                varchar  — invoice number as printed on the document
+  po_reference          varchar  — purchase order reference
+  issue_date            date     — invoice issue date
+  due_date              date     — payment due date
+  currency              varchar  DEFAULT 'MAD'  — ISO 4217 (MAD, EUR, USD…)
+  subtotal_ht           decimal(12,2)  — pre-tax subtotal
+  taxable_amount        decimal(12,2)  — subtotal after invoice-level discount, before VAT
+  vat_rate              decimal(5,2)   — percentage (e.g. 20.00 = 20%)
+  vat_amount            decimal(12,2)
+  total_ttc             decimal(12,2)  — TOTAL incl. VAT (main invoice amount to use for spend queries)
+  discount_rate         decimal(12,2)  — invoice-level discount %
+  discount_amount       decimal(12,2)
+  amount_in_words       text
+  payment_method        enum('bank_transfer','check','cash','card','bill_of_exchange','other')
+  payment_terms         varchar
+  payment_reference     varchar
+  late_penalty          varchar
+  bank_name             varchar
+  bank_iban             varchar
+  supplier_name         varchar  — supplier name snapshot from the document
+  supplier_address      text
+  supplier_ice          varchar(15)  — Moroccan ICE tax identifier
+  supplier_if           varchar      — Moroccan IF tax identifier
+  supplier_rc           varchar      — Moroccan RC trade register number
+  supplier_phone        varchar
+  supplier_email        varchar
+  supplier_rib          varchar      — supplier bank account identifier
+  supplier_id           bigint NULL  (FK → suppliers.id — linked if matched, else NULL)
+  customer_name         varchar  — customer name snapshot from the document
+  customer_address      text
+  customer_ice          varchar(15)
+  customer_if           varchar
+  customer_id           bigint NULL  (FK → customers.id)
+  category_id           bigint NULL  (FK → invoice_categories.id — AI-assigned)
+  category_corrected_id bigint NULL  (FK → invoice_categories.id — user-corrected)
+  category              varchar NULL — legacy free-text label (prefer category_id join)
+  category_score        decimal(5,2) — AI confidence 0–100
+  status                enum('pending','processing','processed','validated','archived','error')
+  is_duplicate          tinyint(1) DEFAULT 0  — 1 if flagged as duplicate
+  amount_anomaly        tinyint(1) DEFAULT 0  — 1 if amount is statistically anomalous
+  date_anomaly          tinyint(1) DEFAULT 0  — 1 if issue/due date is anomalous
+  new_supplier          tinyint(1) DEFAULT 0  — 1 if supplier had never appeared before
+  vat_mismatch          tinyint(1) DEFAULT 0  — 1 if VAT calculation is inconsistent
+  extraction_score      decimal(5,2) NULL     — overall extraction quality 0–100
+  created_at            timestamp
+  updated_at            timestamp
+  deleted_at            timestamp NULL  [SOFT DELETE — always AND invoices.deleted_at IS NULL]
+
+=== TABLE: invoice_items ===
+Line items belonging to an invoice. No soft delete. No tenant_id (inherit via invoice).
+Columns:
+  id              bigint PK
+  invoice_id      bigint  (FK → invoices.id)
+  sort_order      smallint DEFAULT 0  — display order within the invoice
+  description     text    — product or service name
+  sub_description text NULL  — secondary label, reference code, or period
+  quantity        decimal(12,4) DEFAULT 1
+  unit            enum('piece','hour','kg','flat_fee','km','day','month','other') DEFAULT 'piece'
+  unit_price      decimal(12,4)  — price per unit BEFORE VAT
+  vat_rate        decimal(5,2)  DEFAULT 20.00  — percentage
+  vat_amount      decimal(12,2) NULL
+  amount_ht       decimal(12,2) NULL  — line total BEFORE VAT (= quantity × unit_price)
+  amount_ttc      decimal(12,2) NULL  — line total INCL. VAT
+  discount_rate   decimal(5,2)  NULL
+  discount_amount decimal(12,2) NULL
+  created_at      timestamp
+  updated_at      timestamp
+
+=== TABLE: invoice_categories ===
+Global lookup table (NOT tenant-scoped). Category names for invoice classification.
+Columns:
+  id          bigint PK
+  name        varchar   — e.g. "IT & Telecom", "Office Supplies", "Travel & Accommodation"
+  slug        varchar UNIQUE
+  description text NULL
+  is_active   tinyint(1) DEFAULT 1
+  sort_order  int DEFAULT 0
+  created_at  timestamp
+  updated_at  timestamp
+
+=== TABLE: suppliers ===
+Tenant-scoped. Matched supplier master records. No soft delete.
+Columns:
+  id          bigint PK
+  tenant_id   bigint  [ALWAYS filter: WHERE suppliers.tenant_id = :tenant_id]
+  name        varchar
+  address     varchar NULL
+  ice         varchar NULL  — Moroccan ICE tax identifier
+  if          varchar NULL  — Moroccan IF
+  rc          varchar NULL  — trade register
+  phone       varchar NULL
+  email       varchar NULL
+  rib         varchar NULL  — bank account identifier
+  created_at  timestamp
+  updated_at  timestamp
+
+=== TABLE: customers ===
+Tenant-scoped. Matched customer master records. No soft delete.
+Columns:
+  id          bigint PK
+  tenant_id   bigint  [ALWAYS filter: WHERE customers.tenant_id = :tenant_id]
+  name        varchar
+  address     varchar NULL
+  ice         varchar NULL
+  if          varchar NULL
+  rc          varchar NULL
+  phone       varchar NULL
+  email       varchar NULL
+  rib         varchar NULL
+  created_at  timestamp
+  updated_at  timestamp
+
+=== RELATIONSHIPS ===
+invoice_items.invoice_id  → invoices.id
+invoices.supplier_id      → suppliers.id  (nullable; use supplier_name for text, supplier_id for joins)
+invoices.customer_id      → customers.id  (nullable; use customer_name for text, customer_id for joins)
+invoices.category_id      → invoice_categories.id  (AI-assigned)
+invoices.category_corrected_id → invoice_categories.id  (user override, prefer over category_id when set)
+
+=== QUERY TIPS ===
+- "total spent" → SUM(total_ttc) on invoices
+- "by supplier" → GROUP BY supplier_name or JOIN suppliers ON invoices.supplier_id = suppliers.id
+- "by category" → JOIN invoice_categories ON invoices.category_id = invoice_categories.id
+- "this month" → MONTH(issue_date) = MONTH(CURDATE()) AND YEAR(issue_date) = YEAR(CURDATE())
+- "anomalies" → WHERE is_duplicate=1 OR amount_anomaly=1 OR vat_mismatch=1
+- "processed invoices only" → AND invoices.status = 'processed'
 SCHEMA;
 
         $prompt = <<<PROMPT
@@ -146,9 +292,21 @@ RULES:
 2. Return ONLY the raw SQL query — no markdown fences (no ```sql), no explanation, nothing else.
 3. Only SELECT statements are allowed.
 4. Every query on `invoices`, `suppliers`, or `customers` MUST include WHERE tenant_id = :tenant_id. If joining tables, apply the filter on the base table.
-5. Never reference a table outside the 5 provided ones.
-6. No subqueries referencing system tables.
-7. Current page context: $safeContext — use it to prioritize relevant data when the question is ambiguous.
+5. The `invoices` table uses soft deletes — always add `AND invoices.deleted_at IS NULL` (or the aliased equivalent) when querying it.
+6. Never reference a table outside the 5 provided ones.
+7. No subqueries referencing system tables.
+8. Current page context: $safeContext — use it to prioritize relevant data when the question is ambiguous.
+$historyNote
+9. Currency conversion: The target reporting currency is $tenantCurrency. Because invoices have different currencies, when performing any sum, aggregation, comparison, or spending retrieval, you MUST convert all amounts to the reporting currency ($tenantCurrency) in the SQL query using this exact CASE expression:
+CASE invoices.currency
+  WHEN 'MAD' THEN (total_ttc * 0.092 / $targetRate)
+  WHEN 'EUR' THEN (total_ttc * 1.0 / $targetRate)
+  WHEN 'USD' THEN (total_ttc * 0.92 / $targetRate)
+  WHEN 'GBP' THEN (total_ttc * 1.17 / $targetRate)
+  ELSE total_ttc
+END
+(Substitute total_ttc with other amount columns like subtotal_ht or vat_amount if the query asks for pre-tax or tax amounts).
+Always convert and sum in the reporting currency ($tenantCurrency) rather than summing mixed currencies!
 PROMPT;
 
         $response = Http::withoutVerifying()->withHeaders([
@@ -271,11 +429,25 @@ PROMPT;
         return $decoded;
     }
 
-    private function narrateResult(string $question, array $rows): string
+    private function narrateResult(string $question, array $rows, string $tenantCurrency = 'MAD', array $history = []): string
     {
+        // Build conversion rates: how many tenantCurrency units per 1 unit of each currency
+        $ratesToEur = ['MAD' => 0.092, 'EUR' => 1.0, 'USD' => 0.92, 'GBP' => 1.17];
+        $targetRate = $ratesToEur[$tenantCurrency] ?? 1.0;
+        $conversionLines = [];
+        foreach ($ratesToEur as $cur => $toEur) {
+            $rate = round($toEur / $targetRate, 4);
+            $conversionLines[] = "  1 {$cur} = {$rate} {$tenantCurrency}";
+        }
+        $conversionTable = implode("\n", $conversionLines);
+
         $prompt = <<<PROMPT
 You are BillMind Assistant, a friendly and professional financial assistant embedded in an invoice management platform.
 Answer in the same language the user used (French, English, Arabic, or any mix).
+
+Company reporting currency: {$tenantCurrency}
+Currency conversion rates (for reference):
+{$conversionTable}
 
 Your tone:
 - Warm and conversational — like a helpful colleague explaining results, not a system generating a report
@@ -283,26 +455,30 @@ Your tone:
 - Never say "Based on the data…", "According to the results…", or "The query returned…"
 - Never mention SQL, databases, or technical details
 
-Formatting rules:
-- Lead with a natural sentence that directly answers the question (e.g. "You spent 12 450,00 MAD on IT services this month.")
-- Monetary amounts: include currency (e.g. "12 450,00 MAD"), thousands separators, 2 decimal places
-- Lists (invoices, suppliers…): clean numbered or bulleted list, one item per line with key info
-- Single number result: state it naturally and prominently
-- Multiple figures: short labels inline (e.g. "Subtotal: 10 000 MAD · VAT: 2 000 MAD · Total: 12 000 MAD")
+Formatting rules (the UI renders Markdown — use it):
+- Lead with a natural sentence that directly answers the question
+- Monetary amounts: always express totals and summaries in {$tenantCurrency}; use **bold** for key amounts
+- When individual rows have a `currency` column different from {$tenantCurrency}, show the original in parentheses (e.g. "**480,00 {$tenantCurrency}** (48,00 USD)")
+- Numbers: thousands separators, 2 decimal places
+- Lists (invoices, suppliers, categories…): use a Markdown bulleted or numbered list, one item per line
+- Multi-column results (e.g. supplier + amount, month + total): use a Markdown table
+- Single number result: state it naturally and prominently in **bold**
+- Multiple figures in one answer: use a Markdown table or inline **bold** labels
 - Empty result: say so naturally (e.g. "It looks like there are no invoices matching that for now.")
-- Keep it concise — no unnecessary filler
+- Keep it concise — no unnecessary filler, no repeating the question back
 PROMPT;
 
-        $userMessage = 'Question: ' . $question . "\nData: " . json_encode($rows, JSON_UNESCAPED_UNICODE);
+        $messages = [['role' => 'system', 'content' => $prompt]];
+        foreach ($history as $msg) {
+            $messages[] = ['role' => $msg['role'], 'content' => $msg['content']];
+        }
+        $messages[] = ['role' => 'user', 'content' => 'Question: ' . $question . "\nData: " . json_encode($rows, JSON_UNESCAPED_UNICODE)];
 
         $response = Http::withoutVerifying()->withHeaders([
             'Authorization' => 'Bearer ' . $this->openaiKey,
         ])->post('https://api.openai.com/v1/chat/completions', [
             'model'    => $this->model,
-            'messages' => [
-                ['role' => 'system', 'content' => $prompt],
-                ['role' => 'user',   'content' => $userMessage],
-            ],
+            'messages' => $messages,
         ]);
 
         if ($response->successful()) {

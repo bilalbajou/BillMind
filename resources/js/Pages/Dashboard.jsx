@@ -187,7 +187,7 @@ function formatDate(date) {
 }
 
 export default function Dashboard() {
-    const { auth, categories = [], totalInvoices = 0, totalRevenue = 0, totalRevenueCurrency = 'MAD', pendingInvoices = 0, recentInvoices = [], suppliersCount = 0, customersCount = 0, monthlyRevenue = [], topSuppliers = [], topCustomers = [], spendByCategory = [], anomalyFlags = [], dateFrom, dateTo } = usePage().props;
+    const { auth, categories = [], totalInvoices = 0, totalRevenue = 0, totalRevenueCurrency = 'MAD', pendingInvoices = 0, recentInvoices = [], suppliersCount = 0, customersCount = 0, monthlyRevenue = [], anomalyFlags = [], dateFrom, dateTo } = usePage().props;
     const [isChatOpen, setIsChatOpen] = useState(false);
     const user = auth.user;
     const stats = buildStats(totalInvoices, totalRevenue, totalRevenueCurrency, pendingInvoices, suppliersCount, customersCount, categories);
@@ -311,92 +311,32 @@ export default function Dashboard() {
                 </ResponsiveContainer>
             </div>
 
-            {/* Analytics Row: Top Suppliers, Top Customers, Anomaly Flags */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-                {/* Top 5 Suppliers */}
-                <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900">Top 5 Suppliers</h2>
-                        <Link href="/suppliers" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                            View All &rarr;
-                        </Link>
-                    </div>
-                    <div className="flex-1 space-y-4 mt-2">
-                        {topSuppliers.length > 0 ? topSuppliers.map((supplier, index) => {
-                            const maxVal = topSuppliers[0].total;
-                            const pct = maxVal > 0 ? (supplier.total / maxVal) * 100 : 0;
-                            return (
-                                <div key={index}>
-                                    <div className="flex justify-between text-sm mb-1.5">
-                                        <span className="font-medium text-gray-700 truncate pr-2" title={supplier.name}>{supplier.name}</span>
-                                        <span className="text-gray-900 font-semibold whitespace-nowrap">{formatAmount(supplier.total, totalRevenueCurrency)}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                        <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
-                                    </div>
-                                </div>
-                            );
-                        }) : (
-                            <div className="flex items-center justify-center h-full text-sm text-gray-400">No data available</div>
-                        )}
-                    </div>
+            {/* Anomaly Flags */}
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Anomaly Flags</h2>
+                    <Link href="/invoices/anomalies" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                        View All &rarr;
+                    </Link>
                 </div>
-
-                {/* Top 5 Customers */}
-                <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900">Top 5 Customers</h2>
-                        <Link href="/customers" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                            View All &rarr;
-                        </Link>
-                    </div>
-                    <div className="flex-1 space-y-4 mt-2">
-                        {topCustomers.length > 0 ? topCustomers.map((customer, index) => {
-                            const maxVal = topCustomers[0].total;
-                            const pct = maxVal > 0 ? (customer.total / maxVal) * 100 : 0;
-                            return (
-                                <div key={index}>
-                                    <div className="flex justify-between text-sm mb-1.5">
-                                        <span className="font-medium text-gray-700 truncate pr-2" title={customer.name}>{customer.name}</span>
-                                        <span className="text-gray-900 font-semibold whitespace-nowrap">{formatAmount(customer.total, totalRevenueCurrency)}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                        <div className="bg-sky-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
-                                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {anomalyFlags.length > 0 ? anomalyFlags.map((flag, index) => {
+                        const maxVal = anomalyFlags[0].count;
+                        const pct = maxVal > 0 ? (flag.count / maxVal) * 100 : 0;
+                        return (
+                            <div key={index}>
+                                <div className="flex justify-between text-sm mb-1.5">
+                                    <span className="font-medium text-gray-700 truncate pr-2" title={flag.label}>{flag.label}</span>
+                                    <span className="text-gray-900 font-semibold whitespace-nowrap">{flag.count}</span>
                                 </div>
-                            );
-                        }) : (
-                            <div className="flex items-center justify-center h-full text-sm text-gray-400">No data available</div>
-                        )}
-                    </div>
-                </div>
-                {/* Anomaly Flags */}
-                <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900">Anomaly Flags</h2>
-                        <Link href="/invoices" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-                            View All &rarr;
-                        </Link>
-                    </div>
-                    <div className="flex-1 space-y-4 mt-2">
-                        {anomalyFlags.length > 0 ? anomalyFlags.map((flag, index) => {
-                            const maxVal = anomalyFlags[0].count;
-                            const pct = maxVal > 0 ? (flag.count / maxVal) * 100 : 0;
-                            return (
-                                <div key={index}>
-                                    <div className="flex justify-between text-sm mb-1.5">
-                                        <span className="font-medium text-gray-700 truncate pr-2" title={flag.label}>{flag.label}</span>
-                                        <span className="text-gray-900 font-semibold whitespace-nowrap">{flag.count}</span>
-                                    </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                        <div className="bg-red-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
-                                    </div>
+                                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-red-500 h-full rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
                                 </div>
-                            );
-                        }) : (
-                            <div className="flex items-center justify-center h-full text-sm text-gray-400">No data available</div>
-                        )}
-                    </div>
+                            </div>
+                        );
+                    }) : (
+                        <div className="col-span-full flex items-center justify-center py-4 text-sm text-gray-400">No anomalies detected</div>
+                    )}
                 </div>
             </div>
 
