@@ -50,7 +50,10 @@ return new class extends Migration
         DB::statement("UPDATE invoices SET file_type = 'pdf'   WHERE mime_type = 'application/pdf'");
         DB::statement("UPDATE invoices SET file_type = 'image' WHERE mime_type LIKE 'image/%'");
 
-        // Update payment_method enum: add bank_transfer, card, other; keep existing values
+        // Update payment_method enum: safely transition 'wire_transfer' to 'bank_transfer'
+        DB::statement("ALTER TABLE invoices MODIFY COLUMN payment_method
+            ENUM('wire_transfer','bank_transfer','check','cash','card','bill_of_exchange','other') NULL");
+        DB::statement("UPDATE invoices SET payment_method = 'bank_transfer' WHERE payment_method = 'wire_transfer'");
         DB::statement("ALTER TABLE invoices MODIFY COLUMN payment_method
             ENUM('bank_transfer','check','cash','card','bill_of_exchange','other') NULL");
 
@@ -71,42 +74,58 @@ return new class extends Migration
     public function down(): void
     {
         // ── invoice_items: remove added columns ───────────────────────────
-        Schema::table('invoice_items', function (Blueprint $table) {
-            $table->dropColumn(['sub_description', 'discount_amount', 'amount_ttc']);
-        });
+        if (Schema::hasColumn('invoice_items', 'sub_description')) {
+            Schema::table('invoice_items', function (Blueprint $table) {
+                $table->dropColumn(['sub_description', 'discount_amount', 'amount_ttc']);
+            });
+        }
 
-        Schema::table('invoice_items', function (Blueprint $table) {
-            $table->renameColumn('sort_order',    'line_order');
-            $table->renameColumn('discount_rate', 'discount_percent');
-        });
+        if (Schema::hasColumn('invoice_items', 'sort_order')) {
+            Schema::table('invoice_items', function (Blueprint $table) {
+                $table->renameColumn('sort_order',    'line_order');
+                $table->renameColumn('discount_rate', 'discount_percent');
+            });
+        }
 
         // ── invoices: remove added columns ────────────────────────────────
-        Schema::table('invoices', function (Blueprint $table) {
-            $table->dropColumn([
-                'file_type', 'discount_amount', 'taxable_amount', 'amount_in_words',
-                'payment_reference', 'late_penalty',
-                'is_duplicate', 'amount_anomaly', 'date_anomaly', 'new_supplier',
-            ]);
-        });
+        if (Schema::hasColumn('invoices', 'file_type')) {
+            Schema::table('invoices', function (Blueprint $table) {
+                $table->dropColumn([
+                    'file_type', 'discount_amount', 'taxable_amount', 'amount_in_words',
+                    'payment_reference', 'late_penalty',
+                    'is_duplicate', 'amount_anomaly', 'date_anomaly', 'new_supplier',
+                ]);
+            });
+        }
 
-        Schema::table('invoices', function (Blueprint $table) {
-            $table->string('bank_rib')->nullable()->after('bank_name');
-        });
+        if (!Schema::hasColumn('invoices', 'bank_rib')) {
+            Schema::table('invoices', function (Blueprint $table) {
+                $table->string('bank_rib')->nullable()->after('bank_name');
+            });
+        }
+
+        DB::statement("ALTER TABLE invoices MODIFY COLUMN payment_method
+            ENUM('bank_transfer','check','cash','card','bill_of_exchange','other','wire_transfer') NULL");
+
+        DB::statement("UPDATE invoices SET payment_method = 'wire_transfer' WHERE payment_method = 'bank_transfer'");
+        DB::statement("UPDATE invoices SET payment_method = NULL WHERE payment_method IN ('card', 'other')");
 
         DB::statement("ALTER TABLE invoices MODIFY COLUMN payment_method
             ENUM('wire_transfer','check','cash','bill_of_exchange') NULL");
 
-        Schema::table('invoices', function (Blueprint $table) {
-            $table->renameColumn('number',           'invoice_number');
-            $table->renameColumn('issue_date',       'invoice_date');
-            $table->renameColumn('supplier_name',    'supplier');
-            $table->renameColumn('subtotal_ht',      'amount_ht');
-            $table->renameColumn('vat_amount',       'tva');
-            $table->renameColumn('total_ttc',        'amount_ttc');
-            $table->renameColumn('content_hash',     'file_hash');
-            $table->renameColumn('extraction_score', 'extraction_confidence');
-            $table->renameColumn('category_score',   'category_confidence');
-            $table->renameColumn('discount_rate',    'discount');
-        });
+        if (Schema::hasColumn('invoices', 'number')) {
+            Schema::table('invoices', function (Blueprint $table) {
+                $table->renameColumn('number',           'invoice_number');
+                $table->renameColumn('issue_date',       'invoice_date');
+                $table->renameColumn('supplier_name',    'supplier');
+                $table->renameColumn('subtotal_ht',      'amount_ht');
+                $table->renameColumn('vat_amount',       'tva');
+                $table->renameColumn('total_ttc',        'amount_ttc');
+                $table->renameColumn('content_hash',     'file_hash');
+                $table->renameColumn('extraction_score', 'extraction_confidence');
+                $table->renameColumn('category_score',   'category_confidence');
+                $table->renameColumn('discount_rate',    'discount');
+            });
+        }
     }
 };
